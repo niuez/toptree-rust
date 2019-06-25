@@ -62,7 +62,9 @@ trait Node: TVertex {
 impl TVertex for Edge {
     fn fix(&mut self) {}
     fn push(&mut self) {}
-    fn reverse(&mut self) {}
+    fn reverse(&mut self) {
+        self.v.swap(0, 1);
+    }
     fn parent(&self) -> Link<ParentNode> { self.par }
     fn parent_mut(&mut self) -> &mut Link<ParentNode> { &mut self.par }
 }
@@ -83,6 +85,7 @@ impl TVertex for Compress {
     }
     fn reverse(&mut self) {
         self.ch.swap(0, 1);
+        self.v.swap(0, 1);
         self.rev ^= true;
     }
     fn parent(&self) -> Link<ParentNode> { self.par }
@@ -98,15 +101,8 @@ impl Node for Compress {
 impl TVertex for Rake {
     fn fix(&mut self) {}
     fn push(&mut self) {
-        if self.rev {
-            self.ch[0].reverse();
-            self.ch[1].reverse();
-            self.rev = false;
-        }
     }
     fn reverse(&mut self) {
-        self.ch.swap(0, 1);
-        self.rev ^= true;
     }
     fn parent(&self) -> Link<ParentNode> { self.par }
     fn parent_mut(&mut self) -> &mut Link<ParentNode> { &mut self.par }
@@ -301,7 +297,7 @@ fn rotate_rake(mut t: NonNull<Rake>, mut x: NonNull<Rake>, dir: usize) {
             *yy.as_mut().child_mut(xdir) = RakeNode::Node(t);
             yy.as_mut().fix();
         }
-        if let Some(ParentNode::Compress(yy)) = y {
+        if let Some(ParentNode::Compress(mut yy)) = y {
             *yy.as_mut().rake_mut() = Some(RakeNode::Node(t));
             yy.as_mut().fix();
         }
@@ -374,7 +370,9 @@ fn expose(mut node: CompNode) {
                 }
                 else { unreachable!() }
             }
-            Some(ParentNode::Compress(n)) => { n }
+            Some(ParentNode::Compress(n)) => {
+                n
+            }
         };
         let dir = match parent_dir_comp(CompNode::Node(n)) {
             Some((dir, _)) => dir,
@@ -389,13 +387,26 @@ fn expose(mut node: CompNode) {
         if let Some((n_dir, mut rake)) = parent_dir_rake(RakeNode::Leaf(node)) {
             unsafe {
                 *rake.as_mut().child_mut(n_dir) = RakeNode::Leaf(n.as_ref().child(dir));
+                *n.as_mut().child(dir).parent_mut() = Some(ParentNode::Rake(rake));
+                rake.as_mut().fix();
                 *n.as_mut().child_mut(dir) = node;
+                *node.parent_mut() = Some(ParentNode::Compress(n));
+                splay_rake(rake);
+                n.as_mut().fix();
             }
         }
         else {
             unsafe {
-                *n.as_mut().rake_mut() = Some(RakeNode::Leaf(n.as_ref().child(0)));
+                *n.as_mut().rake_mut() = Some(RakeNode::Leaf(n.as_ref().child(dir)));
+                *n.as_mut().child(dir).parent_mut() = Some(ParentNode::Compress(n));
                 *n.as_mut().child_mut(dir) = node;
+                *node.parent_mut() = Some(ParentNode::Compress(n));
+                n.as_mut().fix();
+            }
+        }
+        if let CompNode::Leaf(_) = node {
+            while let Some(ParentNode::Compress(par)) = node.parent() {
+                node = CompNode::Node(par);
             }
         }
     }
@@ -422,27 +433,48 @@ fn test_comp_endpoints(node: CompNode) {
 
 fn main() {
     unsafe {
-        let v: Vec<_> = (0..5).map(|i| Vertex(i, None)).collect();
+        let v: Vec<_> = (0..8).map(|i| Vertex(i, None)).collect();
         let mut e: Vec<_> = (0..4).map(|i| NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
             v: [v[i], v[i + 1]],
             par: None,
         })))).map(|e| CompNode::Leaf(e)).collect();
-        let mut p1 = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
-            ch: [e[0], e[1]],
-            v: [v[0], v[2]],
-            rake: None,
+        let mut e51 = CompNode::Leaf(NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
+            v: [v[5], v[1]],
+            par: None,
+        }))));
+        let mut e63 = CompNode::Leaf(NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
+            v: [v[6], v[3]],
+            par: None,
+        }))));
+        let mut e73 = CompNode::Leaf(NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
+            v: [v[7], v[3]],
+            par: None,
+        }))));
+        let mut rake = NonNull::new_unchecked(Box::into_raw(Box::new(Rake {
+            ch: [RakeNode::Leaf(e63), RakeNode::Leaf(e73)],
             par: None,
             rev: false,
         })));
+        *e63.parent_mut() = Some(ParentNode::Rake(rake));
+        *e73.parent_mut() = Some(ParentNode::Rake(rake));
+        let mut p1 = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
+            ch: [e[0], e[1]],
+            v: [v[0], v[2]],
+            rake: Some(RakeNode::Leaf(e51)),
+            par: None,
+            rev: false,
+        })));
+        *e51.parent_mut() = Some(ParentNode::Compress(p1));
         *e[0].parent_mut() = Some(ParentNode::Compress(p1));
         *e[1].parent_mut() = Some(ParentNode::Compress(p1));
         let mut p2 = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
             ch: [e[2], e[3]],
             v: [v[2], v[4]],
-            rake: None,
+            rake: Some(RakeNode::Node(rake)),
             par: None,
             rev: false,
         })));
+        *rake.as_mut().parent_mut() = Some(ParentNode::Compress(p2));
         *e[2].parent_mut() = Some(ParentNode::Compress(p2));
         *e[3].parent_mut() = Some(ParentNode::Compress(p2));
         let p3 = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
@@ -459,6 +491,12 @@ fn main() {
         println!("splay");
         test_comp_endpoints(CompNode::Node(p3));
         println!("p1-------------------------");
+        test_comp_endpoints(CompNode::Node(p1));
+        println!("expose e51");
+        expose(e51);
+        test_comp_endpoints(CompNode::Node(p1));
+        println!("expose e73");
+        expose(e73);
         test_comp_endpoints(CompNode::Node(p1));
     }
 }
