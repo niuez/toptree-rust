@@ -25,14 +25,14 @@ enum ParentNode {
 
 #[derive(Clone, Copy, PartialEq)]
 struct Edge {
-    v: [NonNull<Vertex>; 2],
+    v: [Vertex; 2],
     par: Link<ParentNode>
 }
 
 #[derive(Clone, Copy, PartialEq)]
 struct Compress {
-    ch: [Link<CompNode>; 2],
-    v: [NonNull<Vertex>; 2],
+    ch: [CompNode; 2],
+    v: [Vertex; 2],
     rake: Link<RakeNode>,
     par: Link<ParentNode>,
     rev: bool,
@@ -40,7 +40,7 @@ struct Compress {
 
 #[derive(Clone, Copy, PartialEq)]
 struct Rake {
-    ch: [Link<RakeNode>; 2],
+    ch: [RakeNode; 2],
     par: Link<ParentNode>,
     rev: bool,
 }
@@ -55,8 +55,8 @@ trait TVertex {
 
 trait Node: TVertex {
     type Child: TVertex;
-    fn child(&self, dir: usize) -> Link<Self::Child>;
-    fn child_mut(&mut self, dir: usize) -> &mut Link<Self::Child>;
+    fn child(&self, dir: usize) -> Self::Child;
+    fn child_mut(&mut self, dir: usize) -> &mut Self::Child;
 }
 
 impl TVertex for Edge {
@@ -71,12 +71,8 @@ impl TVertex for Compress {
     fn fix(&mut self) {}
     fn push(&mut self) {
         if self.rev {
-            if let Some(mut left) = self.ch[0] {
-                left.reverse();
-            }
-            if let Some(mut right) = self.ch[1] {
-                right.reverse();
-            }
+            self.ch[0].reverse();
+            self.ch[1].reverse();
             self.rev = false;
         }
     }
@@ -90,20 +86,16 @@ impl TVertex for Compress {
 
 impl Node for Compress {
     type Child = CompNode;
-    fn child(&self, dir: usize) -> Link<Self::Child> { self.ch[dir] }
-    fn child_mut(&mut self, dir: usize) -> &mut Link<Self::Child> { &mut self.ch[dir] }
+    fn child(&self, dir: usize) -> Self::Child { self.ch[dir] }
+    fn child_mut(&mut self, dir: usize) -> &mut Self::Child { &mut self.ch[dir] }
 }
 
 impl TVertex for Rake {
     fn fix(&mut self) {}
     fn push(&mut self) {
         if self.rev {
-            if let Some(mut left) = self.ch[0] {
-                left.reverse();
-            }
-            if let Some(mut right) = self.ch[1] {
-                right.reverse();
-            }
+            self.ch[0].reverse();
+            self.ch[1].reverse();
             self.rev = false;
         }
     }
@@ -117,8 +109,8 @@ impl TVertex for Rake {
 
 impl Node for Rake {
     type Child = RakeNode;
-    fn child(&self, dir: usize) -> Link<Self::Child> { self.ch[dir] }
-    fn child_mut(&mut self, dir: usize) -> &mut Link<Self::Child> { &mut self.ch[dir] }
+    fn child(&self, dir: usize) -> Self::Child { self.ch[dir] }
+    fn child_mut(&mut self, dir: usize) -> &mut Self::Child { &mut self.ch[dir] }
 }
 
 impl TVertex for CompNode {
@@ -233,8 +225,8 @@ fn parent_dir_comp(child: CompNode) -> Option<(usize, NonNull<Compress>)> {
     unsafe {
         match child.parent() {
             Some(ParentNode::Compress(p)) => {
-                if p.as_ref().child(0) == Some(child) { Some((0, p)) }
-                else if p.as_ref().child(1) == Some(child) { Some((1, p)) }
+                if p.as_ref().child(0) == child { Some((0, p)) }
+                else if p.as_ref().child(1) == child { Some((1, p)) }
                 else { None }
             }
             _ => None,
@@ -246,8 +238,8 @@ fn parent_dir_rake(child: RakeNode) -> Option<(usize, NonNull<Rake>)> {
     unsafe {
         match child.parent() {
             Some(ParentNode::Rake(p)) => {
-                if p.as_ref().child(0) == Some(child) { Some((0, p)) }
-                else if p.as_ref().child(0) == Some(child) { Some((1, p)) }
+                if p.as_ref().child(0) == child { Some((0, p)) }
+                else if p.as_ref().child(0) == child { Some((1, p)) }
                 else { None }
             }
             _ => None,
@@ -260,16 +252,15 @@ fn rotate_comp(mut t: NonNull<Compress>, mut x: NonNull<Compress>, dir: usize) {
         let y = x.as_ref().parent();
 
         *x.as_mut().child_mut(dir ^ 1) = t.as_ref().child(dir);
-        if let Some(mut tr) = t.as_ref().child(dir) {
-            *tr.parent_mut() = Some(ParentNode::Compress(x));
-        }
-        *t.as_mut().child_mut(dir) = Some(CompNode::Node(x));
+        *t.as_ref().child(dir).parent_mut() = Some(ParentNode::Compress(x));
+        *t.as_mut().child_mut(dir) = CompNode::Node(x);
+        let par = parent_dir_comp(CompNode::Node(x));
         *x.as_mut().parent_mut() = Some(ParentNode::Compress(t));
-        t.as_mut().fix();
         x.as_mut().fix();
+        t.as_mut().fix();
         *t.as_mut().parent_mut() = y;
-        if let Some((xdir, mut yy)) = parent_dir_comp(CompNode::Node(x)) {
-            *yy.as_mut().child_mut(xdir) = Some(CompNode::Node(t));
+        if let Some((xdir, mut yy)) = par {
+            *yy.as_mut().child_mut(xdir) = CompNode::Node(t);
             yy.as_mut().fix();
         }
     }
@@ -280,16 +271,14 @@ fn rotate_rake(mut t: NonNull<Rake>, mut x: NonNull<Rake>, dir: usize) {
         let y = x.as_ref().parent();
 
         *x.as_mut().child_mut(dir ^ 1) = t.as_ref().child(dir);
-        if let Some(mut tr) = t.as_ref().child(dir) {
-            *tr.parent_mut() = Some(ParentNode::Rake(x));
-        }
-        *t.as_mut().child_mut(dir) = Some(RakeNode::Node(x));
+        *t.as_ref().child(dir).parent_mut() = Some(ParentNode::Rake(x));
+        *t.as_mut().child_mut(dir) = RakeNode::Node(x);
         *x.as_mut().parent_mut() = Some(ParentNode::Rake(t));
-        t.as_mut().fix();
         x.as_mut().fix();
+        t.as_mut().fix();
         *t.as_mut().parent_mut() = y;
         if let Some((xdir, mut yy)) = parent_dir_rake(RakeNode::Node(x)) {
-            *yy.as_mut().child_mut(xdir) = Some(RakeNode::Node(t));
+            *yy.as_mut().child_mut(xdir) = RakeNode::Node(t);
             yy.as_mut().fix();
         }
     }
@@ -347,5 +336,64 @@ fn splay_rake(mut t: NonNull<Rake>) {
     }
 }
 
+fn test_comp_endpoints(node: CompNode) {
+    unsafe {
+        match node {
+            CompNode::Node(node) => {
+                println!("node---");
+                println!("{:?}", node.as_ref().v.iter().map(|v| v.0).collect::<Vec<_>>());
+                println!("left");
+                test_comp_endpoints(node.as_ref().child(0));
+                println!("right");
+                test_comp_endpoints(node.as_ref().child(1));
+            }
+            CompNode::Leaf(leaf) => {
+                println!("leaf---");
+                println!("{:?}", leaf.as_ref().v.iter().map(|v| v.0).collect::<Vec<_>>());
+            }
+        }
+    }
+}
+
 fn main() {
+    unsafe {
+        let v: Vec<_> = (0..5).map(|i| Vertex(i, None)).collect();
+        let mut e: Vec<_> = (0..4).map(|i| NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
+            v: [v[i], v[i + 1]],
+            par: None,
+        })))).map(|e| CompNode::Leaf(e)).collect();
+        let mut p1 = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
+            ch: [e[0], e[1]],
+            v: [v[0], v[2]],
+            rake: None,
+            par: None,
+            rev: false,
+        })));
+        *e[0].parent_mut() = Some(ParentNode::Compress(p1));
+        *e[1].parent_mut() = Some(ParentNode::Compress(p1));
+        let mut p2 = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
+            ch: [e[2], e[3]],
+            v: [v[2], v[4]],
+            rake: None,
+            par: None,
+            rev: false,
+        })));
+        *e[2].parent_mut() = Some(ParentNode::Compress(p2));
+        *e[3].parent_mut() = Some(ParentNode::Compress(p2));
+        let p3 = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
+            ch: [CompNode::Node(p1), CompNode::Node(p2)],
+            v: [v[0], v[4]],
+            rake: None,
+            par: None,
+            rev: false,
+        })));
+        *p1.as_mut().parent_mut() = Some(ParentNode::Compress(p3));
+        *p2.as_mut().parent_mut() = Some(ParentNode::Compress(p3));
+        test_comp_endpoints(CompNode::Node(p3));
+        splay_comp(p1);
+        println!("splay");
+        test_comp_endpoints(CompNode::Node(p3));
+        println!("p1-------------------------");
+        test_comp_endpoints(CompNode::Node(p1));
+    }
 }
