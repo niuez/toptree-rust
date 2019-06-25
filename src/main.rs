@@ -250,11 +250,10 @@ fn parent_dir_rake(child: RakeNode) -> Option<(usize, NonNull<Rake>)> {
 fn rotate_comp(mut t: NonNull<Compress>, mut x: NonNull<Compress>, dir: usize) {
     unsafe {
         let y = x.as_ref().parent();
-
+        let par = parent_dir_comp(CompNode::Node(x));
         *x.as_mut().child_mut(dir ^ 1) = t.as_ref().child(dir);
         *t.as_ref().child(dir).parent_mut() = Some(ParentNode::Compress(x));
         *t.as_mut().child_mut(dir) = CompNode::Node(x);
-        let par = parent_dir_comp(CompNode::Node(x));
         *x.as_mut().parent_mut() = Some(ParentNode::Compress(t));
         x.as_mut().fix();
         t.as_mut().fix();
@@ -269,7 +268,7 @@ fn rotate_comp(mut t: NonNull<Compress>, mut x: NonNull<Compress>, dir: usize) {
 fn rotate_rake(mut t: NonNull<Rake>, mut x: NonNull<Rake>, dir: usize) {
     unsafe {
         let y = x.as_ref().parent();
-
+        let par = parent_dir_rake(RakeNode::Node(x));
         *x.as_mut().child_mut(dir ^ 1) = t.as_ref().child(dir);
         *t.as_ref().child(dir).parent_mut() = Some(ParentNode::Rake(x));
         *t.as_mut().child_mut(dir) = RakeNode::Node(x);
@@ -277,7 +276,7 @@ fn rotate_rake(mut t: NonNull<Rake>, mut x: NonNull<Rake>, dir: usize) {
         x.as_mut().fix();
         t.as_mut().fix();
         *t.as_mut().parent_mut() = y;
-        if let Some((xdir, mut yy)) = parent_dir_rake(RakeNode::Node(x)) {
+        if let Some((xdir, mut yy)) = par {
             *yy.as_mut().child_mut(xdir) = RakeNode::Node(t);
             yy.as_mut().fix();
         }
