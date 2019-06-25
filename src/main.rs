@@ -28,6 +28,9 @@ struct Edge {
     v: [NonNull<Vertex>; 2],
     par: Link<ParentNode>,
     me: NonNull<Edge>,
+
+
+    val: usize,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -38,6 +41,9 @@ struct Compress {
     par: Link<ParentNode>,
     me: NonNull<Compress>,
     rev: bool,
+
+
+    fold: usize
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -102,6 +108,7 @@ impl TVertex for Compress {
         self.push();
         self.v[0] = self.ch[0].endpoints(0);
         self.v[1] = self.ch[1].endpoints(1);
+        self.fold = self.ch[0].fold() + self.ch[1].fold();
         unsafe { self.ch[0].endpoints(1).as_mut().1 = Some(CompNode::Node(self.me)); }
         match self.parent() {
             Some(ParentNode::Compress(_)) => {
@@ -168,6 +175,14 @@ impl CompNode {
             match *self {
                 CompNode::Node(node) => node.as_ref().v[dir],
                 CompNode::Leaf(leaf) => leaf.as_ref().v[dir],
+            }
+        }
+    }
+    pub fn fold(&self) -> usize {
+        unsafe {
+            match *self {
+                CompNode::Node(node) => node.as_ref().fold,
+                CompNode::Leaf(leaf) => leaf.as_ref().val,
             }
         }
     }
@@ -448,7 +463,7 @@ fn splay_rake(mut t: NonNull<Rake>) {
     }
 }
 
-fn expose(mut node: CompNode) {
+fn expose(mut node: CompNode) -> CompNode {
     loop {
         if let CompNode::Node(comp) = node {
             splay_comp(comp);
@@ -478,9 +493,20 @@ fn expose(mut node: CompNode) {
         }
         if let Some((n_dir, mut rake)) = parent_dir_rake(RakeNode::Leaf(node)) {
             unsafe {
+                let mut nch = n.as_mut().child(dir);
+                {
+                    let mut now = nch;
+                    let mut stack = Vec::new();
+                    while let Some(ParentNode::Compress(par)) = now.parent() {
+                        stack.push(par);
+                        now = CompNode::Node(par);
+                    }
+                    while let Some(mut par) = stack.pop() {
+                        par.as_mut().push();
+                    }
+                }
                 *rake.as_mut().child_mut(n_dir) = RakeNode::Leaf(n.as_ref().child(dir));
                 *n.as_mut().child(dir).parent_mut() = Some(ParentNode::Rake(rake));
-                let mut nch = n.as_mut().child(dir);
                 *n.as_mut().child_mut(dir) = node;
                 *node.parent_mut() = Some(ParentNode::Compress(n));
                 nch.fix();
@@ -492,9 +518,21 @@ fn expose(mut node: CompNode) {
         }
         else {
             unsafe {
+                let mut nch = n.as_mut().child(dir);
+                {
+                    let mut now = nch;
+                    let mut stack = Vec::new();
+                    while let Some(ParentNode::Compress(par)) = now.parent() {
+                        stack.push(par);
+                        now = CompNode::Node(par);
+                    }
+                    while let Some(mut par) = stack.pop() {
+                        par.as_mut().push();
+                    }
+                }
+
                 *n.as_mut().rake_mut() = Some(RakeNode::Leaf(n.as_ref().child(dir)));
                 *n.as_mut().child(dir).parent_mut() = Some(ParentNode::Compress(n));
-                let mut nch = n.as_mut().child(dir);
                 *n.as_mut().child_mut(dir) = node;
                 *node.parent_mut() = Some(ParentNode::Compress(n));
                 nch.fix();
@@ -504,19 +542,113 @@ fn expose(mut node: CompNode) {
         }
         if let CompNode::Leaf(_) = node {
             while let Some(ParentNode::Compress(mut par)) = node.parent() {
-                unsafe { par.as_mut().fix(); }
+                unsafe { par.as_mut().fix() }
                 node = CompNode::Node(par);
             }
         }
     }
+    node
 }
 
-fn test_comp_endpoints(node: CompNode) {
+fn soft_expose(v: NonNull<Vertex>, u: NonNull<Vertex>) {
     unsafe {
+        if u.as_ref().1.unwrap().endpoints(0) == u {
+            expose(u.as_ref().1.unwrap().endpoints(1).as_ref().1.unwrap());
+        }
+        let mut ur = expose(u.as_ref().1.unwrap());
+        if ur.endpoints(0) == u {
+            ur.reverse();
+            ur.push();
+        }
+        //test_comp_endpoints(ur);
+        let mut root = expose(v.as_ref().1.unwrap());
+
+        //println!("root = {}, {}", root.endpoints(0).as_ref().0, root.endpoints(1).as_ref().0);
+        //println!("v u = {}, {}", v.as_ref().0, u.as_ref().0);
+        //test_comp_print(v.as_ref().1.unwrap());
+        //test_comp_print(u.as_ref().1.unwrap());
+        //test_comp_endpoints(root);
+
+        if u.as_ref().1 == v.as_ref().1 {
+            if root.endpoints(1) == v {
+                root.reverse();
+            }
+            else if root.endpoints(0) == u {
+                root.reverse();
+            }
+            return;
+        }
+        let mut root = match root {
+            CompNode::Node(n) => n,
+            _ => unreachable!(),
+        };
+        match u.as_ref().1.unwrap() {
+            CompNode::Node(mut t) => {
+                t.as_mut().push();
+                t.as_mut().fix();
+                while let Some((qt_dir, mut q)) = parent_dir_comp(CompNode::Node(t)) {
+                    if CompNode::Node(q) == CompNode::Node(root) { break }
+                    q.as_mut().push();
+                    t.as_mut().push();
+                    t.as_mut().fix();
+                    q.as_mut().fix();
+                    rotate_comp(t, q, qt_dir ^ 1);
+                }
+            }
+            _ => unreachable!()
+        }
+        if root.as_ref().child(0) == u.as_ref().1.unwrap() {
+            root.as_mut().reverse();
+        }
+        assert!(root.as_ref().child(1) == u.as_ref().1.unwrap());
+    }
+}
+
+fn query(v: NonNull<Vertex>, u: NonNull<Vertex>) -> usize {
+    unsafe {
+        soft_expose(v, u);
+        let mut root = v.as_ref().1.unwrap();
+        root.push();
+        //test_comp_endpoints(root);
+        //println!("root = {}, {}", root.endpoints(0).as_ref().0, root.endpoints(1).as_ref().0);
+        if root.endpoints(0) == v && root.endpoints(1) == u {
+            root.fold()
+        }
+        else if root.endpoints(0) == v {
+            if let CompNode::Node(mut n) = root {
+                n.as_mut().push();
+                n.as_ref().child(0).fold()
+            }
+            else { unreachable!() }
+        }
+        else if root.endpoints(1) == u {
+            if let CompNode::Node(mut n) = root {
+                n.as_mut().push();
+                n.as_ref().child(1).fold()
+            }
+            else { unreachable!() }
+        }
+        else {
+            if let CompNode::Node(mut n) = root {
+                n.as_mut().push();
+                if let CompNode::Node(mut n2) = n.as_ref().child(1) {
+                    n2.as_mut().push();
+                    n2.as_ref().child(0).fold()
+                }
+                else { unreachable!() }
+            }
+            else { unreachable!() }
+        }
+    }
+}
+
+fn test_comp_endpoints(mut node: CompNode) {
+    unsafe {
+        //node.push();
         match node {
             CompNode::Node(node) => {
                 println!("node---");
-                println!("{:?}", node.as_ref().v.iter().map(|v| v.as_ref().0).collect::<Vec<_>>());
+                println!("{:?} = {}  rev {}", node.as_ref().v.iter().map(|v| v.as_ref().0).collect::<Vec<_>>(), node.as_ref().fold, node.as_ref().rev);
                 println!("left");
                 test_comp_endpoints(node.as_ref().child(0));
                 println!("right");
@@ -524,7 +656,7 @@ fn test_comp_endpoints(node: CompNode) {
             }
             CompNode::Leaf(leaf) => {
                 println!("leaf---");
-                println!("{:?}", leaf.as_ref().v.iter().map(|v| v.as_ref().0).collect::<Vec<_>>());
+                println!("{:?} = {}", leaf.as_ref().v.iter().map(|v| v.as_ref().0).collect::<Vec<_>>(), leaf.as_ref().val);
             }
         }
     }
@@ -545,13 +677,18 @@ fn test_comp_print(node: CompNode) {
     }
 }
 
+
 fn main() {
     unsafe {
         let v: Vec<_> = (0..8).map(|i| Vertex(i, None)).map(|v| NonNull::new_unchecked(Box::into_raw(Box::new(v)))).collect();
+        let e_weight = [1, 2, 3, 4];
         let mut e: Vec<_> = (0..4).map(|i| NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
             v: [v[i], v[i + 1]],
             par: None,
             me: NonNull::dangling(),
+
+            val: e_weight[i],
+
         })))).map(|mut e| {
             e.as_mut().me = e;
             e.as_mut().fix();
@@ -562,6 +699,8 @@ fn main() {
             v: [v[5], v[1]],
             par: None,
             me: NonNull::dangling(),
+
+            val: 5,
         })));
         e51.as_mut().me = e51;
         e51.as_mut().fix();
@@ -571,6 +710,8 @@ fn main() {
             v: [v[6], v[3]],
             par: None,
             me: NonNull::dangling(),
+
+            val: 6,
         })));
         e63.as_mut().me = e63;
         e63.as_mut().fix();
@@ -580,6 +721,8 @@ fn main() {
             v: [v[7], v[3]],
             par: None,
             me: NonNull::dangling(),
+
+            val: 7,
         })));
         e73.as_mut().me = e73;
         e73.as_mut().fix();
@@ -600,6 +743,8 @@ fn main() {
             par: None,
             rev: false,
             me: NonNull::dangling(),
+
+            fold: 0,
         })));
         p1.as_mut().me = p1;
         p1.as_mut().fix();
@@ -613,6 +758,8 @@ fn main() {
             par: None,
             rev: false,
             me: NonNull::dangling(),
+
+            fold: 0,
         })));
         p2.as_mut().me = p2;
         p2.as_mut().fix();
@@ -626,17 +773,22 @@ fn main() {
             par: None,
             rev: false,
             me: NonNull::dangling(),
+
+            fold: 0,
         })));
         p3.as_mut().me = p3;
         p3.as_mut().fix();
         *p1.as_mut().parent_mut() = Some(ParentNode::Compress(p3));
         *p2.as_mut().parent_mut() = Some(ParentNode::Compress(p3));
+        /*
         test_comp_endpoints(CompNode::Node(p3));
         println!("----------handle---------");
         for vv in v.iter() {
             println!("handle {}", vv.as_ref().0);
             test_comp_print(vv.as_ref().1.unwrap());
         }
+        */
+        /*
         splay_comp(p1);
         println!("splay");
         test_comp_endpoints(CompNode::Node(p3));
@@ -667,5 +819,22 @@ fn main() {
             println!("handle {}", vv.as_ref().0);
             test_comp_print(vv.as_ref().1.unwrap());
         }
+        */
+        /*
+        soft_expose(v[5], v[3]);
+        println!("finish--------------");
+        test_comp_endpoints(v[5].as_ref().1.unwrap());
+        soft_expose(v[1], v[3]);
+        println!("finish--------------");
+        test_comp_endpoints(v[1].as_ref().1.unwrap());
+        */
+
+        println!("query 0, 4 = {}", query(v[0], v[4]));
+        println!("query 0, 3 = {}", query(v[0], v[3]));
+        println!("query 1, 3 = {}", query(v[1], v[3]));
+        println!("query 1, 5 = {}", query(v[1], v[5]));
+        println!("query 2, 0 = {}", query(v[2], v[0]));
+        println!("query 5, 7 = {}", query(v[5], v[7]));
+        println!("query 6, 7 = {}", query(v[6], v[7]));
     }
 }
