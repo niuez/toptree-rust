@@ -877,13 +877,13 @@ fn main() {
             let el = link(v[i], dummy, 0);
             es.push(el);
         }
-        println!("link finish");
-        println!("-- query 1, 0 = {}", query(v[1], v[0]));
-        println!("-- query 0, 4 = {}", query(v[0], v[4]));
-        println!("-- query 1, 9 = {}", query(v[1], v[9]));
-        println!("-- query 3, 11 = {}", query(v[3], v[11]));
-        println!("-- query 6, 12 = {}", query(v[6], v[12]));
-        println!("-- query 12, 6 = {}", query(v[12], v[6]));
-        println!("-- query 2, 4 = {}", query(v[2], v[4]));
+        assert!(query(v[1], v[0]) == 1);
+        assert!(query(v[0], v[4]) == 5);
+        assert!(query(v[1], v[9]) == 8);
+        assert!(query(v[3], v[11]) == 27);
+        assert!(query(v[6], v[12]) == 18);
+        assert!(query(v[12], v[6]) == 18);
+        assert!(query(v[2], v[4]) == 14);
+        assert!(query(v[5], v[6]) == 6);
     }
 }
