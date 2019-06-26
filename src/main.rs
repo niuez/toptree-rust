@@ -604,6 +604,149 @@ fn soft_expose(v: NonNull<Vertex>, u: NonNull<Vertex>) {
     }
 }
 
+fn link(v: NonNull<Vertex>, u: NonNull<Vertex>, weight: usize) {
+    unsafe {
+        if v.as_ref().1.is_none() && u.as_ref().1.is_none() {
+            let mut e = NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
+                v: [v, u],
+                par: None,
+                val: weight,
+                me: NonNull::dangling(),
+            })));
+            e.as_mut().me = e;
+            e.as_mut().fix();
+        }
+        else {
+            let nnu = u.as_ref().1;
+            let nnv = v.as_ref().1;
+            let mut e = NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
+                v: [v, u],
+                par: None,
+                val: weight,
+                me: NonNull::dangling(),
+            })));
+            e.as_mut().me = e;
+            e.as_mut().fix();
+            let mut left = match nnu {
+                None => {
+                    e.as_mut().fix();
+                    CompNode::Leaf(e)
+                }
+                Some(mut uu) => {
+                    expose(uu);
+                    e.as_mut().fix();
+                    if uu.endpoints(1) == u {
+                        uu.reverse();
+                        uu.push();
+                    }
+                    if uu.endpoints(0) == u {
+                        let mut nu = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
+                            ch: [CompNode::Leaf(e), uu],
+                            v: [NonNull::dangling(), NonNull::dangling()],
+                            rake: None,
+                            par: None,
+                            rev: false,
+                            me: NonNull::dangling(),
+                            fold: 0,
+                        })));
+                        nu.as_mut().me = nu;
+                        nu.as_mut().fix();
+                        *e.as_mut().parent_mut() = Some(ParentNode::Compress(nu));
+                        *uu.parent_mut() = Some(ParentNode::Compress(nu));
+                        CompNode::Node(nu)
+                    }
+                    else {
+                        let mut nu = match uu {
+                            CompNode::Node(nu) => nu,
+                            _ => unreachable!(),
+                        };
+                        let left_ch = nu.as_ref().child(0);
+                        *nu.as_mut().child_mut(0) = CompNode::Leaf(e);
+                        *e.as_mut().parent_mut() = Some(ParentNode::Compress(nu));
+                        let beta = nu.as_ref().rake();
+                        let mut rake = match beta {
+                            Some(mut b) => {
+                                let mut rake = NonNull::new_unchecked(Box::into_raw(Box::new(Rake {
+                                    ch: [b, RakeNode::Leaf(left_ch)],
+                                    par: None,
+                                    rev: false,
+                                })));
+                                *b.parent_mut() = Some(ParentNode::Rake(rake));
+                                *e.as_mut().parent_mut() = Some(ParentNode::Rake(rake));
+                                rake.as_mut().fix();
+                                RakeNode::Node(rake)
+                            }
+                            None => {
+                                RakeNode::Leaf(left_ch)
+                            }
+                        };
+                        *nu.as_mut().rake_mut() = Some(rake);
+                        *rake.parent_mut() = Some(ParentNode::Compress(nu));
+                        nu.as_mut().fix();
+                        CompNode::Node(nu)
+                    }
+                }
+            };
+            match nnv {
+                None => {}
+                Some(mut vv) => {
+                    expose(vv);
+                    if vv.endpoints(0) == v {
+                        vv.reverse();
+                        vv.push();
+                    }
+                    if vv.endpoints(1) == v {
+                        let mut top = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
+                            ch: [vv, left],
+                            v: [NonNull::dangling(), NonNull::dangling()],
+                            rake: None,
+                            par: None,
+                            rev: false,
+                            me: NonNull::dangling(),
+                            fold: 0,
+                        })));
+                        top.as_mut().me = top;
+                        top.as_mut().fix();
+                        *vv.parent_mut() = Some(ParentNode::Compress(top));
+                        *left.parent_mut() = Some(ParentNode::Compress(top));
+                    }
+                    else {
+                        let mut nv = match vv {
+                            CompNode::Node(nv) => nv,
+                            _ => unreachable!(),
+                        };
+                        let mut right_ch = nv.as_ref().child(1);
+                        right_ch.reverse();
+                        right_ch.push();
+                        *nv.as_mut().child_mut(1) = left;
+                        *left.parent_mut() = Some(ParentNode::Compress(nv));
+                        let alpha = nv.as_ref().rake();
+                        let mut rake = match alpha {
+                            Some(mut a) => {
+                                let mut rake = NonNull::new_unchecked(Box::into_raw(Box::new(Rake {
+                                    ch: [a, RakeNode::Leaf(right_ch)],
+                                    par: None,
+                                    rev: false,
+                                })));
+                                *a.parent_mut() = Some(ParentNode::Rake(rake));
+                                *right_ch.parent_mut() = Some(ParentNode::Rake(rake));
+                                rake.as_mut().fix();
+                                RakeNode::Node(rake)
+                            }
+                            None => {
+                                RakeNode::Leaf(right_ch)
+                            }
+                        };
+                        *nv.as_mut().rake_mut() = Some(rake);
+                        *rake.parent_mut() = Some(ParentNode::Compress(nv));
+                        nv.as_mut().fix();
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn query(v: NonNull<Vertex>, u: NonNull<Vertex>) -> usize {
     unsafe {
         soft_expose(v, u);
@@ -836,5 +979,29 @@ fn main() {
         println!("query 2, 0 = {}", query(v[2], v[0]));
         println!("query 5, 7 = {}", query(v[5], v[7]));
         println!("query 6, 7 = {}", query(v[6], v[7]));
+    }
+    unsafe {
+        let v: Vec<_> = (0..13).map(|i| Vertex(i, None)).map(|v| NonNull::new_unchecked(Box::into_raw(Box::new(v)))).collect();
+        let edges = [
+            (0usize, 1usize, 1usize),
+            (1, 2, 10),
+            (1, 3, 3),
+            (1, 4, 4),
+            (0, 5, 3),
+            (5, 9, 4),
+            (9, 10, 7),
+            (10, 11, 9),
+            (10, 12, 1),
+            (0, 6, 3),
+            (6, 7, 3),
+            (7, 8, 7),
+        ];
+        for (a, b, w) in edges.iter() {
+            link(v[*a], v[*b], *w);
+            println!("{:?}-----------------------------------", (*a, *b, *w));
+            expose(v[0].as_ref().1.unwrap());
+            //test_comp_endpoints(v[0].as_ref().1.unwrap());
+        }
+        println!("-- query 1, 10 = {}", query(v[1], v[10]));
     }
 }
