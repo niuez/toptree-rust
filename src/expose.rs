@@ -3,7 +3,7 @@ use crate::node::*;
 use crate::parent_dir::*;
 use crate::splay::*;
 
-pub fn expose(mut node: CompNode) -> CompNode {
+pub fn expose<T: Clone>(mut node: CompNode<T>) -> CompNode<T> {
     loop {
         //println!("function expose --- node");
         //test_comp_print(node);
@@ -92,7 +92,7 @@ pub fn expose(mut node: CompNode) -> CompNode {
     node
 }
 
-pub fn soft_expose(v: NonNull<Vertex>, u: NonNull<Vertex>) {
+pub fn soft_expose<T: Clone>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>) {
     unsafe {
         let mut root = expose(v.as_ref().1.unwrap());
         if v.as_ref().1 == u.as_ref().1 { return; }

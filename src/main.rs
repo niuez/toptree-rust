@@ -29,14 +29,14 @@ fn main() {
         ];
         let mut es = Vec::new();
         for (a, b, w) in edges.iter() {
-            es.push(link(v[*a], v[*b], *w));
+            es.push(link(v[*a], v[*b], *w, 0));
             println!("{:?}", (*a, *b, *w));
             //test_comp_endpoints(v[0].as_ref().1.unwrap());
         }
         for i in 0..13 {
             let dummy = NonNull::new_unchecked(Box::into_raw(Box::new(Vertex(i + 13, None))));
             v.push(dummy);
-            let el = link(v[i], dummy, 0);
+            let el = link(v[i], dummy, 0, 0);
             es.push(el);
         }
         assert!(path_query(v[1], v[0]) == 1);
