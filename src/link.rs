@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 use crate::node::*;
 use crate::expose::*;
 
-pub fn link<T: Clone>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>, weight: T, def: T) -> NonNull<Edge<T>> {
+pub fn link<T: Clone + Default>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>, weight: T) -> NonNull<Edge<T>> {
     unsafe {
         if v.as_ref().1.is_none() && u.as_ref().1.is_none() {
             Edge::new(v, u, weight)
@@ -22,7 +22,7 @@ pub fn link<T: Clone>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>, weight: T, d
                         uu.push();
                     }
                     if uu.endpoints(0) == u {
-                        let mut nu = Compress::new(CompNode::Leaf(e), uu, def.clone());
+                        let mut nu = Compress::new(CompNode::Leaf(e), uu);
                         *e.as_mut().parent_mut() = Some(ParentNode::Compress(nu));
                         e.as_mut().fix();
                         *uu.parent_mut() = Some(ParentNode::Compress(nu));
@@ -43,7 +43,7 @@ pub fn link<T: Clone>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>, weight: T, d
                         let beta = nu.as_ref().rake();
                         let mut rake = match beta {
                             Some(mut b) => {
-                                let rake = Rake::new(b, RakeNode::Leaf(left_ch), def.clone());
+                                let rake = Rake::new(b, RakeNode::Leaf(left_ch));
                                 *b.parent_mut() = Some(ParentNode::Rake(rake));
                                 *left_ch.parent_mut() = Some(ParentNode::Rake(rake));
                                 left_ch.fix();
@@ -71,7 +71,7 @@ pub fn link<T: Clone>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>, weight: T, d
                         vv.push();
                     }
                     if vv.endpoints(1) == v {
-                        let mut top = Compress::new(vv, left, def);
+                        let mut top = Compress::new(vv, left);
                         *vv.parent_mut() = Some(ParentNode::Compress(top));
                         vv.fix();
                         *left.parent_mut() = Some(ParentNode::Compress(top));
@@ -92,7 +92,7 @@ pub fn link<T: Clone>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>, weight: T, d
                         let alpha = nv.as_ref().rake();
                         let mut rake = match alpha {
                             Some(mut a) => {
-                                let mut rake = Rake::new(a, RakeNode::Leaf(right_ch), def.clone());
+                                let mut rake = Rake::new(a, RakeNode::Leaf(right_ch));
                                 *a.parent_mut() = Some(ParentNode::Rake(rake));
                                 a.fix();
                                 *right_ch.parent_mut() = Some(ParentNode::Rake(rake));

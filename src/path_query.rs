@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 use crate::node::*;
 use crate::expose::*;
 
-pub fn path_query<T: Clone>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>) -> T {
+pub fn path_query<T: Clone + Default>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>) -> T {
     unsafe {
         soft_expose(v, u);
         let mut root = v.as_ref().1.unwrap();

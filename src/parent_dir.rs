@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
 use crate::node::*;
 
-pub fn parent_dir_comp<T: Clone>(child: CompNode<T>) -> Option<(usize, NonNull<Compress<T>>)> {
+pub fn parent_dir_comp<T: Clone + Default>(child: CompNode<T>) -> Option<(usize, NonNull<Compress<T>>)> {
     unsafe {
         match child.parent() {
             Some(ParentNode::Compress(mut p)) => {
@@ -16,7 +16,7 @@ pub fn parent_dir_comp<T: Clone>(child: CompNode<T>) -> Option<(usize, NonNull<C
     }
 }
 
-pub fn parent_dir_comp_guard<T: Clone>(child: CompNode<T>) -> Option<(usize, NonNull<Compress<T>>)> {
+pub fn parent_dir_comp_guard<T: Clone + Default>(child: CompNode<T>) -> Option<(usize, NonNull<Compress<T>>)> {
     unsafe {
         match child.parent() {
             Some(ParentNode::Compress(mut p)) => {
@@ -31,7 +31,7 @@ pub fn parent_dir_comp_guard<T: Clone>(child: CompNode<T>) -> Option<(usize, Non
 }
 
 
-pub fn parent_dir_comp_rake<T: Clone>(child: CompNode<T>) -> Option<(usize, NonNull<Rake<T>>)> { 
+pub fn parent_dir_comp_rake<T: Clone + Default>(child: CompNode<T>) -> Option<(usize, NonNull<Rake<T>>)> { 
     unsafe { 
         match child.parent() {
             Some(ParentNode::Rake(mut p)) => {
@@ -46,7 +46,7 @@ pub fn parent_dir_comp_rake<T: Clone>(child: CompNode<T>) -> Option<(usize, NonN
 }
 
 
-pub fn parent_dir_rake<T: Clone>(child: RakeNode<T>) -> Option<(usize, NonNull<Rake<T>>)> {
+pub fn parent_dir_rake<T: Clone + Default>(child: RakeNode<T>) -> Option<(usize, NonNull<Rake<T>>)> {
     unsafe {
         match child.parent() {
             Some(ParentNode::Rake(mut p)) => {

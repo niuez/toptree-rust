@@ -3,24 +3,24 @@ use crate::parent_dir::*;
 
 pub type Link<N> = Option<N>;
 
-pub struct Vertex<T: Clone>(pub usize, pub Option<CompNode<T>>);
+pub struct Vertex<T: Clone + Default>(pub usize, pub Option<CompNode<T>>);
 
-pub enum CompNode<T: Clone> {
+pub enum CompNode<T: Clone + Default> {
     Node(NonNull<Compress<T>>),
     Leaf(NonNull<Edge<T>>),
 }
 
-pub enum RakeNode<T: Clone> {
+pub enum RakeNode<T: Clone + Default> {
     Node(NonNull<Rake<T>>),
     Leaf(CompNode<T>),
 }
 
-pub enum ParentNode<T: Clone> {
+pub enum ParentNode<T: Clone + Default> {
     Compress(NonNull<Compress<T>>),
     Rake(NonNull<Rake<T>>),
 }
 
-pub struct Edge<T: Clone> {
+pub struct Edge<T: Clone + Default> {
     v: [NonNull<Vertex<T>>; 2],
     par: Link<ParentNode<T>>,
     me: NonNull<Edge<T>>,
@@ -29,7 +29,7 @@ pub struct Edge<T: Clone> {
     pub val: T,
 }
 
-pub struct Compress<T: Clone> {
+pub struct Compress<T: Clone + Default> {
     ch: [CompNode<T>; 2],
     v: [NonNull<Vertex<T>>; 2],
     rake: Link<RakeNode<T>>,
@@ -43,14 +43,14 @@ pub struct Compress<T: Clone> {
     pub fold: T
 }
 
-pub struct Rake<T: Clone> {
+pub struct Rake<T: Clone + Default> {
     ch: [RakeNode<T>; 2],
     par: Link<ParentNode<T>>,
 
     fold: T,
 }
 
-impl<T: Clone> Edge<T> {
+impl<T: Clone + Default> Edge<T> {
     pub fn new(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>, val: T) -> NonNull<Edge<T>> {
         unsafe {
             let mut e = NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
@@ -66,8 +66,8 @@ impl<T: Clone> Edge<T> {
     }
 }
 
-impl<T: Clone> Compress<T> {
-    pub fn new(left: CompNode<T>, right: CompNode<T>, def: T) -> NonNull<Compress<T>> {
+impl<T: Clone + Default> Compress<T> {
+    pub fn new(left: CompNode<T>, right: CompNode<T>) -> NonNull<Compress<T>> {
         unsafe {
             let mut n = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
                 ch: [left, right],
@@ -77,7 +77,7 @@ impl<T: Clone> Compress<T> {
                 rev: false,
                 me: NonNull::dangling(),
                 guard: false,
-                fold: def,
+                fold: T::default(),
             })));
             n.as_mut().me = n;
             n.as_mut().fix();
@@ -86,13 +86,13 @@ impl<T: Clone> Compress<T> {
     }
 }
 
-impl<T: Clone> Rake<T> {
-    pub fn new(left: RakeNode<T>, right: RakeNode<T>, default: T) -> NonNull<Rake<T>> {
+impl<T: Clone + Default> Rake<T> {
+    pub fn new(left: RakeNode<T>, right: RakeNode<T>) -> NonNull<Rake<T>> {
         unsafe {
             let mut r = NonNull::new_unchecked(Box::into_raw(Box::new(Rake {
                 ch: [left, right],
                 par: None,
-                fold: default
+                fold: T::default()
             })));
             r.as_mut().fix();
             r
@@ -100,7 +100,7 @@ impl<T: Clone> Rake<T> {
     }
 }
 
-pub trait TVertex<T: Clone> {
+pub trait TVertex<T: Clone + Default> {
     fn fix(&mut self);
     fn push(&mut self);
     fn reverse(&mut self);
@@ -108,13 +108,13 @@ pub trait TVertex<T: Clone> {
     fn parent_mut(&mut self) -> &mut Link<ParentNode<T>>;
 }
 
-pub trait Node<T: Clone>: TVertex<T> {
+pub trait Node<T: Clone + Default>: TVertex<T> {
     type Child: TVertex<T>;
     fn child(&self, dir: usize) -> Self::Child;
     fn child_mut(&mut self, dir: usize) -> &mut Self::Child;
 }
 
-impl<T: Clone> TVertex<T> for Edge<T> {
+impl<T: Clone + Default> TVertex<T> for Edge<T> {
     fn fix(&mut self) {
         match self.parent() {
             Some(ParentNode::Compress(_)) => {
@@ -145,12 +145,12 @@ impl<T: Clone> TVertex<T> for Edge<T> {
     fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> { &mut self.par }
 }
 
-impl<T: Clone> Compress<T> {
+impl<T: Clone + Default> Compress<T> {
     pub fn rake(&self) -> Link<RakeNode<T>> { self.rake }
     pub fn rake_mut(&mut self) -> &mut Link<RakeNode<T>> { &mut self.rake }
 }
 
-impl<T: Clone> TVertex<T> for Compress<T> {
+impl<T: Clone + Default> TVertex<T> for Compress<T> {
     fn fix(&mut self) {
         self.push();
         self.v[0] = self.ch[0].endpoints(0);
@@ -195,13 +195,13 @@ impl<T: Clone> TVertex<T> for Compress<T> {
     fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> { &mut self.par }
 }
 
-impl<T: Clone> Node<T> for Compress<T> {
+impl<T: Clone + Default> Node<T> for Compress<T> {
     type Child = CompNode<T>;
     fn child(&self, dir: usize) -> Self::Child { self.ch[dir] }
     fn child_mut(&mut self, dir: usize) -> &mut Self::Child { &mut self.ch[dir] }
 }
 
-impl<T: Clone> TVertex<T> for Rake<T> {
+impl<T: Clone + Default> TVertex<T> for Rake<T> {
     fn fix(&mut self) {}
     fn push(&mut self) {
     }
@@ -211,13 +211,13 @@ impl<T: Clone> TVertex<T> for Rake<T> {
     fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> { &mut self.par }
 }
 
-impl<T: Clone> Node<T> for Rake<T> {
+impl<T: Clone + Default> Node<T> for Rake<T> {
     type Child = RakeNode<T>;
     fn child(&self, dir: usize) -> Self::Child { self.ch[dir] }
     fn child_mut(&mut self, dir: usize) -> &mut Self::Child { &mut self.ch[dir] }
 }
 
-impl<T: Clone> CompNode<T> {
+impl<T: Clone + Default> CompNode<T> {
     pub fn endpoints(&self, dir: usize) -> NonNull<Vertex<T>> {
         unsafe {
             match *self {
@@ -236,7 +236,7 @@ impl<T: Clone> CompNode<T> {
     }
 }
 
-impl<T: Clone> RakeNode<T> {
+impl<T: Clone + Default> RakeNode<T> {
     pub fn fold(&self) -> T {
         unsafe {
             match *self {
@@ -247,7 +247,7 @@ impl<T: Clone> RakeNode<T> {
     }
 }
 
-impl<T: Clone> TVertex<T> for CompNode<T> {
+impl<T: Clone + Default> TVertex<T> for CompNode<T> {
     fn fix(&mut self) {
         unsafe {
             match *self {
@@ -290,7 +290,7 @@ impl<T: Clone> TVertex<T> for CompNode<T> {
     }
 }
 
-impl<T: Clone> TVertex<T> for RakeNode<T> {
+impl<T: Clone + Default> TVertex<T> for RakeNode<T> {
     fn fix(&mut self) {
         unsafe {
             match *self {
@@ -333,7 +333,7 @@ impl<T: Clone> TVertex<T> for RakeNode<T> {
     }
 }
 
-impl<T: Clone> TVertex<T> for ParentNode<T> {
+impl<T: Clone + Default> TVertex<T> for ParentNode<T> {
     fn fix(&mut self) {
         unsafe {
             match *self {
@@ -376,7 +376,7 @@ impl<T: Clone> TVertex<T> for ParentNode<T> {
     }
 }
 
-impl<T: Clone> PartialEq for CompNode<T> {
+impl<T: Clone + Default> PartialEq for CompNode<T> {
     fn eq(&self, other: &Self) -> bool {
         match (*self, *other) {
             (CompNode::Node(a), CompNode::Node(b)) => a == b,
@@ -386,7 +386,7 @@ impl<T: Clone> PartialEq for CompNode<T> {
     }
 }
 
-impl<T: Clone> PartialEq for RakeNode<T> {
+impl<T: Clone + Default> PartialEq for RakeNode<T> {
     fn eq(&self, other: &Self) -> bool {
         match (*self, *other) {
             (RakeNode::Node(a), RakeNode::Node(b)) => a == b,
@@ -397,7 +397,7 @@ impl<T: Clone> PartialEq for RakeNode<T> {
 }
 
 
-impl<T: Clone> PartialEq for ParentNode<T> {
+impl<T: Clone + Default> PartialEq for ParentNode<T> {
     fn eq(&self, other: &Self) -> bool {
         match (*self, *other) {
             (ParentNode::Compress(a), ParentNode::Compress(b)) => a == b,
@@ -408,7 +408,7 @@ impl<T: Clone> PartialEq for ParentNode<T> {
 }
 
 
-impl<T: Clone> Clone for CompNode<T> {
+impl<T: Clone + Default> Clone for CompNode<T> {
     fn clone(&self) -> Self {
         match *self {
             CompNode::Node(a) => CompNode::Node(a),
@@ -417,7 +417,7 @@ impl<T: Clone> Clone for CompNode<T> {
     }
 }
 
-impl<T: Clone> Clone for RakeNode<T> {
+impl<T: Clone + Default> Clone for RakeNode<T> {
     fn clone(&self) -> Self {
         match *self {
             RakeNode::Node(a) => RakeNode::Node(a),
@@ -426,7 +426,7 @@ impl<T: Clone> Clone for RakeNode<T> {
     }
 }
 
-impl<T: Clone> Clone for ParentNode<T> {
+impl<T: Clone + Default> Clone for ParentNode<T> {
     fn clone(&self) -> Self {
         match *self {
             ParentNode::Compress(a) => ParentNode::Compress(a),
@@ -435,13 +435,13 @@ impl<T: Clone> Clone for ParentNode<T> {
     }
 }
 
-impl<T: Clone> Clone for Vertex<T> {
+impl<T: Clone + Default> Clone for Vertex<T> {
     fn clone(&self) -> Self {
         Vertex(self.0, self.1)
     }
 }
 
-impl<T: Clone> Copy for CompNode<T> {}
-impl<T: Clone> Copy for RakeNode<T> {}
-impl<T: Clone> Copy for ParentNode<T> {}
-impl<T: Clone> Copy for Vertex<T> {}
+impl<T: Clone + Default> Copy for CompNode<T> {}
+impl<T: Clone + Default> Copy for RakeNode<T> {}
+impl<T: Clone + Default> Copy for ParentNode<T> {}
+impl<T: Clone + Default> Copy for Vertex<T> {}
