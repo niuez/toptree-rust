@@ -5,6 +5,7 @@ pub trait Cluster: Clone {
     fn identity() -> Self;
     fn compress(left: Self, right: Self, rake: Self) -> Self;
     fn rake(left: Self, right: Self) -> Self;
+    fn reverse(&mut self);
 }
 
 pub type Link<N> = Option<N>;
@@ -146,6 +147,7 @@ impl<T: Cluster> TVertex<T> for Edge<T> {
     fn push(&mut self) {}
     fn reverse(&mut self) {
         self.v.swap(0, 1);
+        self.val.reverse();
     }
     fn parent(&self) -> Link<ParentNode<T>> { self.par }
     fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> { &mut self.par }
@@ -199,6 +201,7 @@ impl<T: Cluster> TVertex<T> for Compress<T> {
     fn reverse(&mut self) {
         self.ch.swap(0, 1);
         self.v.swap(0, 1);
+        self.fold.reverse();
         self.rev ^= true;
     }
     fn parent(&self) -> Link<ParentNode<T>> { self.par }
@@ -218,6 +221,7 @@ impl<T: Cluster> TVertex<T> for Rake<T> {
     fn push(&mut self) {
     }
     fn reverse(&mut self) {
+        self.fold.reverse();
     }
     fn parent(&self) -> Link<ParentNode<T>> { self.par }
     fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> { &mut self.par }
