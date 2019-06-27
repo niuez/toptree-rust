@@ -6,10 +6,18 @@ pub mod link;
 pub mod path_query;
 pub mod debug;
 
+pub mod query;
+
 use std::ptr::NonNull;
 use node::*;
 use link::*;
 use path_query::*;
+
+impl Cluster for usize {
+    fn identity() -> Self { 0 }
+    fn compress(left: Self, right: Self, _: Self) -> Self { left + right }
+    fn rake(_: Self, _: Self) -> Self { Self::identity() }
+}
 
 fn main() {
     unsafe {
@@ -48,5 +56,7 @@ fn main() {
         assert!(path_query(v[12], v[6]) == 18);
         assert!(path_query(v[2], v[4]) == 14);
         assert!(path_query(v[5], v[6]) == 6);
+
+        query::diameter::diameter_test();
     }
 }
