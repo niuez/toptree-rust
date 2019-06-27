@@ -51,8 +51,8 @@ pub struct Compress {
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Rake {
-    pub ch: [RakeNode; 2],
-    pub par: Link<ParentNode>,
+    ch: [RakeNode; 2],
+    par: Link<ParentNode>,
 }
 
 impl Edge {
