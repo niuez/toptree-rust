@@ -49,6 +49,55 @@ pub struct Compress {
     pub fold: usize
 }
 
+impl Edge {
+    pub fn new(v: NonNull<Vertex>, u: NonNull<Vertex>, val: usize) -> NonNull<Edge> {
+        unsafe {
+            let mut e = NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
+                v: [v, u],
+                par: None,
+                val: val,
+                me: NonNull::dangling(),
+            })));
+            e.as_mut().me = e;
+            e.as_mut().fix();
+            e
+        }
+    }
+}
+
+impl Compress {
+    pub fn new(left: CompNode, right: CompNode) -> NonNull<Compress> {
+        unsafe {
+            let mut n = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
+                ch: [left, right],
+                v: [NonNull::dangling(), NonNull::dangling()],
+                rake: None,
+                par: None,
+                rev: false,
+                me: NonNull::dangling(),
+                guard: false,
+                fold: 0,
+            })));
+            n.as_mut().me = n;
+            n.as_mut().fix();
+            n
+        }
+    }
+}
+
+impl Rake {
+    pub fn new(left: RakeNode, right: RakeNode) -> NonNull<Rake> {
+        unsafe {
+            let mut r = NonNull::new_unchecked(Box::into_raw(Box::new(Rake {
+                ch: [left, right],
+                par: None,
+            })));
+            r.as_mut().fix();
+            r
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub struct Rake {
     pub ch: [RakeNode; 2],
