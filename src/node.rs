@@ -26,9 +26,9 @@ pub enum ParentNode {
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Edge {
-    pub v: [NonNull<Vertex>; 2],
-    pub par: Link<ParentNode>,
-    pub me: NonNull<Edge>,
+    v: [NonNull<Vertex>; 2],
+    par: Link<ParentNode>,
+    me: NonNull<Edge>,
 
 
     pub val: usize,
@@ -36,17 +36,23 @@ pub struct Edge {
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct Compress {
-    pub ch: [CompNode; 2],
-    pub v: [NonNull<Vertex>; 2],
-    pub rake: Link<RakeNode>,
-    pub par: Link<ParentNode>,
-    pub me: NonNull<Compress>,
-    pub rev: bool,
+    ch: [CompNode; 2],
+    v: [NonNull<Vertex>; 2],
+    rake: Link<RakeNode>,
+    par: Link<ParentNode>,
+    me: NonNull<Compress>,
+    rev: bool,
 
     pub guard: bool,
 
 
     pub fold: usize
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub struct Rake {
+    pub ch: [RakeNode; 2],
+    pub par: Link<ParentNode>,
 }
 
 impl Edge {
@@ -96,12 +102,6 @@ impl Rake {
             r
         }
     }
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub struct Rake {
-    pub ch: [RakeNode; 2],
-    pub par: Link<ParentNode>,
 }
 
 pub trait TVertex {

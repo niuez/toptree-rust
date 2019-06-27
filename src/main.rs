@@ -4,7 +4,6 @@ pub mod splay;
 pub mod expose;
 pub mod link;
 pub mod path_query;
-pub mod debug;
 
 use std::ptr::NonNull;
 use node::*;
