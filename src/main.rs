@@ -4,6 +4,9 @@ pub mod splay;
 pub mod expose;
 pub mod link;
 pub mod path_query;
+pub mod debug;
+
+pub mod query;
 
 use std::ptr::NonNull;
 use node::*;
@@ -53,5 +56,7 @@ fn main() {
         assert!(path_query(v[12], v[6]) == 18);
         assert!(path_query(v[2], v[4]) == 14);
         assert!(path_query(v[5], v[6]) == 6);
+
+        query::diameter::diameter_test();
     }
 }

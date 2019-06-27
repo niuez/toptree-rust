@@ -1,31 +1,32 @@
 use crate::node::*;
 
-pub fn test_comp_endpoints(node: CompNode) {
+
+pub fn test_comp_endpoints<T: Cluster + std::fmt::Debug>(node: CompNode<T>) {
     unsafe {
         //node.push();
         match node {
-            CompNode::Node(node) => {
-                println!("NODE {:?} = {}", node.as_ref().v.iter().map(|v| v.as_ref().0).collect::<Vec<_>>(), node.as_ref().fold);
+            CompNode::Node(n) => {
+                println!("NODE {:?} = {:?}", [node.endpoints(0), node.endpoints(1)].iter().map(|v| v.as_ref().0).collect::<Vec<_>>(), node.fold());
                 println!("left");
-                test_comp_endpoints(node.as_ref().child(0));
+                test_comp_endpoints(n.as_ref().child(0));
                 println!("right");
-                test_comp_endpoints(node.as_ref().child(1));
+                test_comp_endpoints(n.as_ref().child(1));
             }
-            CompNode::Leaf(leaf) => {
-                println!("LEAF {:?} = {}", leaf.as_ref().v.iter().map(|v| v.as_ref().0).collect::<Vec<_>>(), leaf.as_ref().val);
+            CompNode::Leaf(_) => {
+                println!("LEAF {:?} = {:?}", [node.endpoints(0), node.endpoints(1)].iter().map(|v| v.as_ref().0).collect::<Vec<_>>(), node.fold());
             }
         }
     }
 }
 
-pub fn test_comp_print(node: CompNode) {
+pub fn test_comp_print<T: Cluster + std::fmt::Debug>(node: CompNode<T>) {
     unsafe {
         match node {
-            CompNode::Node(node) => {
-                println!("NODE {:?} = {}", node.as_ref().v.iter().map(|v| v.as_ref().0).collect::<Vec<_>>(), node.as_ref().fold);
+            CompNode::Node(_) => {
+                println!("NODE {:?} = {:?}", [node.endpoints(0), node.endpoints(1)].iter().map(|v| v.as_ref().0).collect::<Vec<_>>(), node.fold());
             }
-            CompNode::Leaf(leaf) => {
-                println!("LEAF {:?} = {}", leaf.as_ref().v.iter().map(|v| v.as_ref().0).collect::<Vec<_>>(), leaf.as_ref().val);
+            CompNode::Leaf(_) => {
+                println!("LEAF {:?} = {:?}", [node.endpoints(0), node.endpoints(1)].iter().map(|v| v.as_ref().0).collect::<Vec<_>>(), node.fold());
             }
         }
     }
