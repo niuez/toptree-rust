@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 use crate::node::*;
 use crate::parent_dir::*;
 
-pub fn rotate_comp<T: Clone + Default>(mut t: NonNull<Compress<T>>, mut x: NonNull<Compress<T>>, dir: usize) {
+pub fn rotate_comp<T: Cluster>(mut t: NonNull<Compress<T>>, mut x: NonNull<Compress<T>>, dir: usize) {
     unsafe {
         let y = x.as_ref().parent();
         if let Some(mut yy) = y { 
@@ -30,7 +30,7 @@ pub fn rotate_comp<T: Clone + Default>(mut t: NonNull<Compress<T>>, mut x: NonNu
     }
 }
 
-pub fn rotate_rake<T: Clone + Default>(mut t: NonNull<Rake<T>>, mut x: NonNull<Rake<T>>, dir: usize) {
+pub fn rotate_rake<T: Cluster>(mut t: NonNull<Rake<T>>, mut x: NonNull<Rake<T>>, dir: usize) {
     unsafe {
         let y = x.as_ref().parent();
         if let Some(mut yy) = y { yy.push() }
@@ -57,7 +57,7 @@ pub fn rotate_rake<T: Clone + Default>(mut t: NonNull<Rake<T>>, mut x: NonNull<R
     }
 }
 
-pub fn splay_comp<T: Clone + Default>(mut t: NonNull<Compress<T>>) {
+pub fn splay_comp<T: Cluster>(mut t: NonNull<Compress<T>>) {
     unsafe {
         t.as_mut().push();
         t.as_mut().fix();
@@ -92,7 +92,7 @@ pub fn splay_comp<T: Clone + Default>(mut t: NonNull<Compress<T>>) {
     //println!("====================== end splay =================================");
 }
 
-pub fn splay_rake<T: Clone + Default>(mut t: NonNull<Rake<T>>) {
+pub fn splay_rake<T: Cluster>(mut t: NonNull<Rake<T>>) {
     unsafe {
         t.as_mut().push();
         t.as_mut().fix();

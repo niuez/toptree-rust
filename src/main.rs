@@ -10,6 +10,12 @@ use node::*;
 use link::*;
 use path_query::*;
 
+impl Cluster for usize {
+    fn identity() -> Self { 0 }
+    fn compress(left: Self, right: Self, _: Self) -> Self { left + right }
+    fn rake(_: Self, _: Self) -> Self { Self::identity() }
+}
+
 fn main() {
     unsafe {
         let mut v: Vec<_> = (0..13).map(|i| Vertex(i, None)).map(|v| NonNull::new_unchecked(Box::into_raw(Box::new(v)))).collect();

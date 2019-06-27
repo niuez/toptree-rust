@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 use crate::node::*;
 use crate::expose::*;
 
-pub fn link<T: Clone + Default>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>, weight: T) -> NonNull<Edge<T>> {
+pub fn link<T: Cluster>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>, weight: T) -> NonNull<Edge<T>> {
     unsafe {
         if v.as_ref().1.is_none() && u.as_ref().1.is_none() {
             Edge::new(v, u, weight)
