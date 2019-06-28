@@ -2,7 +2,6 @@ use std::ptr::NonNull;
 use crate::node::*;
 use crate::link::*;
 use crate::expose::*;
-use crate::debug::*;
 
 #[derive(Clone, Debug)]
 struct Diameter {
@@ -64,7 +63,7 @@ pub fn diameter_test() {
         let mut iter = buf.split_whitespace();
         let n: usize = iter.next().unwrap().parse().unwrap();
 
-        let mut v: Vec<_> = (0..n).map(|i| Vertex(i, None)).map(|v| NonNull::new_unchecked(Box::into_raw(Box::new(v)))).collect();
+        let v: Vec<_> = (0..n).map(|i| Vertex(i, None)).map(|v| NonNull::new_unchecked(Box::into_raw(Box::new(v)))).collect();
         let edges :Vec<(usize, usize, usize)>= (0..n-1).map(|_| {
             (
                 iter.next().unwrap().parse().unwrap(),
@@ -75,7 +74,7 @@ pub fn diameter_test() {
         let mut es = Vec::new();
         for (a, b, w) in edges.iter() {
             es.push(link(v[*a], v[*b], Diameter::new(*w)));
-            println!("{:?}", (*a, *b, *w));
+            //println!("{:?}", (*a, *b, *w));
             //test_comp_endpoints(v[0].as_ref().1.unwrap());
         }
         println!("diameter = {}", expose(v[0].as_ref().1.unwrap()).fold().diam);

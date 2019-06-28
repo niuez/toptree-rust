@@ -203,6 +203,7 @@ impl<T: Cluster> TVertex<T> for Compress<T> {
         self.v.swap(0, 1);
         self.fold.reverse();
         self.rev ^= true;
+        self.push();
     }
     fn parent(&self) -> Link<ParentNode<T>> { self.par }
     fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> { &mut self.par }
@@ -216,12 +217,14 @@ impl<T: Cluster> Node<T> for Compress<T> {
 
 impl<T: Cluster> TVertex<T> for Rake<T> {
     fn fix(&mut self) {
+        self.push();
         self.fold = T::rake(self.ch[0].fold(), self.ch[1].fold());
     }
     fn push(&mut self) {
     }
     fn reverse(&mut self) {
         self.fold.reverse();
+        self.push();
     }
     fn parent(&self) -> Link<ParentNode<T>> { self.par }
     fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> { &mut self.par }

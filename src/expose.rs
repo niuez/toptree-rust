@@ -22,7 +22,8 @@ pub fn expose<T: Cluster>(mut node: CompNode<T>) -> CompNode<T> {
         }
         let mut n = match node.parent() {
             None => break,
-            Some(ParentNode::Rake(par)) => {
+            Some(ParentNode::Rake(mut par)) => {
+                unsafe { par.as_mut().push(); }
                 splay_rake(par);
                 //unsafe { println!("{}", par.as_ref().parent().is_none()); }
                 //unsafe { println!("{}", if let Some(ParentNode::Rake(_)) = par.as_ref().parent() { true } else { false }); }
@@ -31,7 +32,8 @@ pub fn expose<T: Cluster>(mut node: CompNode<T>) -> CompNode<T> {
                 }
                 else { unreachable!() }
             }
-            Some(ParentNode::Compress(n)) => {
+            Some(ParentNode::Compress(mut n)) => {
+                unsafe { n.as_mut().push(); }
                 unsafe {
                     if n.as_ref().guard && parent_dir_comp_guard(node).is_some() { break }
                 }
