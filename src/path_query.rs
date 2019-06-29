@@ -2,10 +2,10 @@ use std::ptr::NonNull;
 use crate::node::*;
 use crate::expose::*;
 
-pub fn path_query<T: Cluster>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>) -> T {
+pub fn path_query<S, T: Cluster>(v: NonNull<Vertex<S, T>>, u: NonNull<Vertex<S, T>>) -> T {
     unsafe {
         soft_expose(v, u);
-        let mut root = v.as_ref().1.unwrap();
+        let mut root = v.as_ref().handle().unwrap();
         root.push();
         //test_comp_endpoints(root);
         //println!("root = {}, {}", root.endpoints(0).as_ref().0, root.endpoints(1).as_ref().0);

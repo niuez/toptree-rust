@@ -12,7 +12,7 @@ impl Cluster for usize {
 
 pub fn path_length_test() {
     unsafe {
-        let mut v: Vec<_> = (0..13).map(|i| Vertex(i, None)).map(|v| NonNull::new_unchecked(Box::into_raw(Box::new(v)))).collect();
+        let mut v: Vec<_> = (0..13).map(|i| Vertex::new(i)).map(|v| NonNull::new_unchecked(Box::into_raw(Box::new(v)))).collect();
         let edges = [
             (0usize, 1usize, 1usize),
             (1, 2, 10),
@@ -34,7 +34,7 @@ pub fn path_length_test() {
             //test_comp_endpoints(v[0].as_ref().1.unwrap());
         }
         for i in 0..13 {
-            let dummy = NonNull::new_unchecked(Box::into_raw(Box::new(Vertex(i + 13, None))));
+            let dummy = NonNull::new_unchecked(Box::into_raw(Box::new(Vertex::new(i + 13))));
             v.push(dummy);
             let el = link(v[i], dummy, 0);
             es.push(el);

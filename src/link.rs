@@ -2,14 +2,14 @@ use std::ptr::NonNull;
 use crate::node::*;
 use crate::expose::*;
 
-pub fn link<T: Cluster>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>, weight: T) -> NonNull<Edge<T>> {
+pub fn link<S, T: Cluster>(v: NonNull<Vertex<S, T>>, u: NonNull<Vertex<S, T>>, weight: T) -> NonNull<Edge<S, T>> {
     unsafe {
-        if v.as_ref().1.is_none() && u.as_ref().1.is_none() {
+        if v.as_ref().handle().is_none() && u.as_ref().handle().is_none() {
             Edge::new(v, u, weight)
         }
         else {
-            let nnu = u.as_ref().1;
-            let nnv = v.as_ref().1;
+            let nnu = u.as_ref().handle();
+            let nnv = v.as_ref().handle();
             let mut e = Edge::new(v, u, weight);
             let mut left = match nnu {
                 None => {

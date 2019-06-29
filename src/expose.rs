@@ -3,7 +3,7 @@ use crate::node::*;
 use crate::parent_dir::*;
 use crate::splay::*;
 
-pub fn expose<T: Cluster>(mut node: CompNode<T>) -> CompNode<T> {
+pub fn expose<S, T: Cluster>(mut node: CompNode<S, T>) -> CompNode<S, T> {
     loop {
         //println!("function expose --- node");
         //test_comp_print(node);
@@ -94,24 +94,24 @@ pub fn expose<T: Cluster>(mut node: CompNode<T>) -> CompNode<T> {
     node
 }
 
-pub fn soft_expose<T: Cluster>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>) {
+pub fn soft_expose<S, T: Cluster>(v: NonNull<Vertex<S, T>>, u: NonNull<Vertex<S, T>>) {
     unsafe {
-        let mut root = expose(v.as_ref().1.unwrap());
-        if v.as_ref().1 == u.as_ref().1 { return; }
+        let mut root = expose(v.as_ref().handle().unwrap());
+        if v.as_ref().handle() == u.as_ref().handle() { return; }
 
         if root.endpoints(0) == v {
             root.reverse();
             root.push();
         }
         if root.endpoints(1) == v {
-            expose(u.as_ref().1.unwrap());
+            expose(u.as_ref().handle().unwrap());
         }
         else if let CompNode::Node(mut r) = root {
             r.as_mut().guard = true;
             //println!("guard ---------------");
             //test_comp_print(root);
             //test_comp_print(u.as_ref().1.unwrap());
-            let soot = expose(u.as_ref().1.unwrap());
+            let soot = expose(u.as_ref().handle().unwrap());
             r.as_mut().guard = false;
             r.as_mut().fix();
             if parent_dir_comp(soot).unwrap().0 == 0 {
