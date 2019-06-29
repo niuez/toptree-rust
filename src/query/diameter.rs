@@ -1,5 +1,6 @@
 use crate::node::*;
 use crate::link::*;
+use crate::cut::*;
 use crate::expose::*;
 
 #[derive(Clone, Debug)]
@@ -76,4 +77,32 @@ pub fn diameter_test() {
         //test_comp_endpoints(v[0].as_ref().1.unwrap());
     }
     println!("diameter = {}", expose(v[0]).fold().diam);
+}
+
+pub fn diameter_cut_test() {
+    println!("diameter cut");
+    let v: Vec<_> = (0..13).map(|i| Vertex::new(i)).collect();
+    let edges = [
+        (0usize, 1usize, 1usize),
+        (1, 2, 10),
+        (1, 3, 3),
+        (1, 4, 4),
+        (0, 5, 3),
+        (5, 9, 4),
+        (9, 10, 7),
+        (10, 11, 9),
+        (10, 12, 1),
+        (0, 6, 3),
+        (6, 7, 3),
+        (7, 8, 7),
+    ];
+    let mut es = Vec::new();
+    for (a, b, w) in edges.iter() {
+        es.push(link(v[*a], v[*b], Diameter::new(*w)));
+        //println!("{:?}", (*a, *b, *w));
+        //test_comp_endpoints(v[0].as_ref().1.unwrap());
+    }
+    cut(v[0], v[5]);
+    println!("0 diameter = {}", expose(v[0]).fold().diam);
+    println!("5 diameter = {}", expose(v[5]).fold().diam);
 }

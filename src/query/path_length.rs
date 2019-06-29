@@ -41,3 +41,4 @@ pub fn path_length_test() {
     assert!(path_query(v[2], v[4]) == 14);
     assert!(path_query(v[5], v[6]) == 6);
 }
+
