@@ -28,7 +28,7 @@ pub fn path_length_test() {
     let mut es = Vec::new();
     for (a, b, w) in edges.iter() {
         es.push(link(v[*a], v[*b], *w));
-        println!("{:?}", (*a, *b, *w));
+        //println!("{:?}", (*a, *b, *w));
         //test_comp_endpoints(v[0].as_ref().1.unwrap());
     }
     for i in 0..13 {
