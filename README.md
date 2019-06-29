@@ -7,8 +7,8 @@ top treeをrustで書いたやつです.
 ```rust
 impl Cluster for usize {
     fn identity() -> Self { 0 }
-    fn compress(left: Self, right: Self, _: Self) -> Self { left + right }
-    fn rake(_: Self, _: Self) -> Self { Self::identity() }
+    fn compress(left: Self, right: Self) -> Self { left + right }
+    fn rake(a: Self, _: Self) -> Self { a }
     fn reverse(&mut self) {}
 }
 ```
@@ -44,8 +44,7 @@ impl Cluster for Diameter {
             length: 0,
         }
     }
-    fn compress(a: Self, b: Self, rake: Self) -> Self {
-        let a = Self::rake(a, rake);
+    fn compress(a: Self, b: Self) -> Self {
         Diameter {
             diam: *[ a.diam, b.diam, a.max_dist_right + b.max_dist_left].into_iter().max().unwrap(),
             max_dist_left: std::cmp::max(a.max_dist_left, a.length + b.max_dist_left),
@@ -72,11 +71,6 @@ impl Cluster for Diameter {
 https://atcoder.jp/contests/tkppc/tasks/tkppc2015_j サンプル通った
 
 ```rust
-use crate::node::*;
-use crate::link::*;
-use crate::cut::*;
-use crate::expose::*;
-
 #[derive(Clone, Debug)]
 struct Farthest {
     ans: usize,
@@ -105,8 +99,7 @@ impl Cluster for Farthest {
             length: 0,
         }
     }
-    fn compress(a: Self, b: Self, rake: Self) -> Self {
-        let a = Self::rake(a, rake);
+    fn compress(a: Self, b: Self) -> Self {
         Farthest {
             ans: std::cmp::max(a.max_dist_right, b.max_dist_left),
             max_dist_left: std::cmp::max(a.max_dist_left, a.length + b.max_dist_left),
