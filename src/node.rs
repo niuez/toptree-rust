@@ -10,14 +10,14 @@ pub trait Cluster: Clone {
 
 pub type Link<N> = Option<N>;
 
-pub struct Vertex<S, T: Cluster> {
+pub struct VertexRaw<S, T: Cluster> {
     val: S,
     handle: Option<CompNode<S, T>>
 }
 
-impl<S, T: Cluster> Vertex<S, T> {
+impl<S, T: Cluster> VertexRaw<S, T> {
     pub fn new(val: S) -> Self {
-        Vertex {
+        VertexRaw {
             val: val,
             handle: None,
         }
@@ -30,6 +30,42 @@ impl<S, T: Cluster> Vertex<S, T> {
     }
     pub fn value(&self) -> &S {
         &self.val
+    }
+}
+
+pub struct Vertex<S, T: Cluster> {
+    vertex: NonNull<VertexRaw<S, T>>,
+}
+
+impl<S, T: Cluster> Vertex<S, T> {
+    pub fn dangling() -> Self {
+        Vertex { vertex: NonNull::dangling() }
+    }
+    pub fn new(val: S) -> Self {
+        unsafe {
+            Vertex { vertex: NonNull::new_unchecked(Box::into_raw(Box::new(VertexRaw::new(val)))) }
+        }
+    }
+    pub fn handle(&self) -> Option<CompNode<S, T>> {
+        unsafe { self.vertex.as_ref().handle() }
+    }
+    pub fn handle_mut(&mut self) -> &mut Option<CompNode<S, T>> {
+        unsafe { self.vertex.as_mut().handle_mut() }
+    }
+    pub fn value(&self) -> &S {
+        unsafe { self.vertex.as_ref().value() }
+    }
+}
+
+impl<S, T: Cluster> Clone for Vertex<S, T> {
+    fn clone(&self) -> Self {
+        Vertex { vertex: self.vertex.clone() }
+    }
+}
+impl<S, T: Cluster> Copy for Vertex<S, T> {}
+impl<S, T: Cluster> PartialEq for Vertex<S, T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.vertex == other.vertex
     }
 }
 
@@ -49,7 +85,7 @@ pub enum ParentNode<S, T: Cluster> {
 }
 
 pub struct Edge<S, T: Cluster> {
-    v: [NonNull<Vertex<S, T>>; 2],
+    v: [Vertex<S, T>; 2],
     par: Link<ParentNode<S, T>>,
     me: NonNull<Edge<S, T>>,
 
@@ -59,7 +95,7 @@ pub struct Edge<S, T: Cluster> {
 
 pub struct Compress<S, T: Cluster> {
     ch: [CompNode<S, T>; 2],
-    v: [NonNull<Vertex<S, T>>; 2],
+    v: [Vertex<S, T>; 2],
     rake: Link<RakeNode<S, T>>,
     par: Link<ParentNode<S, T>>,
     me: NonNull<Compress<S, T>>,
@@ -79,7 +115,7 @@ pub struct Rake<S, T: Cluster> {
 }
 
 impl<S, T: Cluster> Edge<S, T> {
-    pub fn new(v: NonNull<Vertex<S, T>>, u: NonNull<Vertex<S, T>>, val: T) -> NonNull<Edge<S, T>> {
+    pub fn new(v: Vertex<S, T>, u: Vertex<S, T>, val: T) -> NonNull<Edge<S, T>> {
         unsafe {
             let mut e = NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
                 v: [v, u],
@@ -99,7 +135,7 @@ impl<S, T: Cluster> Compress<S, T> {
         unsafe {
             let mut n = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
                 ch: [left, right],
-                v: [NonNull::dangling(), NonNull::dangling()],
+                v: [Vertex::dangling(), Vertex::dangling()],
                 rake: None,
                 par: None,
                 rev: false,
@@ -147,21 +183,15 @@ impl<S, T: Cluster> TVertex<S, T> for Edge<S, T> {
         match self.parent() {
             Some(ParentNode::Compress(_)) => {
                 if parent_dir_comp(CompNode::Leaf(self.me)).is_none() {
-                    unsafe {
-                        *self.v[0].as_mut().handle_mut() = Some(CompNode::Leaf(self.me));
-                    }
+                    *self.v[0].handle_mut() = Some(CompNode::Leaf(self.me));
                 }
             }
             Some(ParentNode::Rake(_)) => {
-                unsafe {
-                    *self.v[0].as_mut().handle_mut() = Some(CompNode::Leaf(self.me));
-                }
+                *self.v[0].handle_mut() = Some(CompNode::Leaf(self.me));
             }
             _ => {
-                unsafe {
-                    *self.v[0].as_mut().handle_mut() = Some(CompNode::Leaf(self.me));
-                    *self.v[1].as_mut().handle_mut() = Some(CompNode::Leaf(self.me));
-                }
+                *self.v[0].handle_mut() = Some(CompNode::Leaf(self.me));
+                *self.v[1].handle_mut() = Some(CompNode::Leaf(self.me));
             }
         }
     }
@@ -189,26 +219,20 @@ impl<S, T: Cluster> TVertex<S, T> for Compress<S, T> {
             Some(r) => r.fold(),
             None => T::identity(),
         });
-        unsafe { *self.ch[0].endpoints(1).as_mut().handle_mut() = Some(CompNode::Node(self.me)); }
+        *self.ch[0].endpoints(1).handle_mut() = Some(CompNode::Node(self.me));
         assert!(self.ch[0].endpoints(1) == self.ch[1].endpoints(0));
         match self.parent() {
             Some(ParentNode::Compress(_)) => {
                 if parent_dir_comp(CompNode::Node(self.me)).is_none() {
-                    unsafe {
-                        *self.v[0].as_mut().handle_mut() = Some(CompNode::Node(self.me));
-                    }
+                    *self.v[0].handle_mut() = Some(CompNode::Node(self.me));
                 }
             },
             Some(ParentNode::Rake(_)) => {
-                unsafe {
-                    *self.v[0].as_mut().handle_mut() = Some(CompNode::Node(self.me));
-                }
+                *self.v[0].handle_mut() = Some(CompNode::Node(self.me));
             }
             _ => {
-                unsafe {
-                    *self.v[0].as_mut().handle_mut() = Some(CompNode::Node(self.me));
-                    *self.v[1].as_mut().handle_mut() = Some(CompNode::Node(self.me));
-                }
+                *self.v[0].handle_mut() = Some(CompNode::Node(self.me));
+                *self.v[1].handle_mut() = Some(CompNode::Node(self.me));
             }
         }
     }
@@ -258,7 +282,7 @@ impl<S, T: Cluster> Node<S, T> for Rake<S, T> {
 }
 
 impl<S, T: Cluster> CompNode<S, T> {
-    pub fn endpoints(&self, dir: usize) -> NonNull<Vertex<S, T>> {
+    pub fn endpoints(&self, dir: usize) -> Vertex<S, T> {
         unsafe {
             match *self {
                 CompNode::Node(node) => node.as_ref().v[dir],
