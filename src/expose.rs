@@ -100,7 +100,13 @@ pub fn expose<S, T: Cluster>(ver: Vertex<S, T>) -> CompNode<S, T> {
 pub fn soft_expose<S, T: Cluster>(v: Vertex<S, T>, u: Vertex<S, T>) {
     unsafe {
         let mut root = expose(v);
-        if v.handle() == u.handle() { return; }
+        if v.handle() == u.handle() {
+            if root.endpoints(1) == v || root.endpoints(0) == u {
+                root.reverse();
+                root.push();
+            }
+            return;
+        }
 
         if root.endpoints(0) == v {
             root.reverse();

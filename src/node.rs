@@ -1,5 +1,6 @@
 use std::ptr::NonNull;
 use crate::parent_dir::*;
+use crate::link::*;
 
 pub trait Cluster: Clone {
     fn identity() -> Self;
@@ -11,14 +12,20 @@ pub trait Cluster: Clone {
 pub type Link<N> = Option<N>;
 
 pub struct VertexRaw<S, T: Cluster> {
-    val: S,
+    val: Option<S>,
     handle: Option<CompNode<S, T>>
 }
 
 impl<S, T: Cluster> VertexRaw<S, T> {
     pub fn new(val: S) -> Self {
         VertexRaw {
-            val: val,
+            val: Some(val),
+            handle: None,
+        }
+    }
+    pub fn dummy() -> Self {
+        VertexRaw {
+            val: None,
             handle: None,
         }
     }
@@ -29,7 +36,7 @@ impl<S, T: Cluster> VertexRaw<S, T> {
         &mut self.handle
     }
     pub fn value(&self) -> &S {
-        &self.val
+        &self.val.as_ref().unwrap()
     }
 }
 
@@ -43,7 +50,10 @@ impl<S, T: Cluster> Vertex<S, T> {
     }
     pub fn new(val: S) -> Self {
         unsafe {
-            Vertex { vertex: NonNull::new_unchecked(Box::into_raw(Box::new(VertexRaw::new(val)))) }
+            let v = Vertex { vertex: NonNull::new_unchecked(Box::into_raw(Box::new(VertexRaw::new(val)))) };
+            let dummy = Vertex { vertex: NonNull::new_unchecked(Box::into_raw(Box::new(VertexRaw::dummy()))) };
+            link(v, dummy, T::identity());
+            v
         }
     }
     pub fn handle(&self) -> Option<CompNode<S, T>> {

@@ -10,7 +10,8 @@ impl Cluster for usize {
 }
 
 pub fn path_length_test() {
-    let mut v: Vec<_> = (0..13).map(|i| Vertex::new(i)).collect();
+    println!("path_length");
+    let v: Vec<_> = (0..13).map(|i| Vertex::new(i)).collect();
     let edges = [
         (0usize, 1usize, 1usize),
         (1, 2, 10),
@@ -30,12 +31,6 @@ pub fn path_length_test() {
         es.push(link(v[*a], v[*b], *w));
         //println!("{:?}", (*a, *b, *w));
         //test_comp_endpoints(v[0].as_ref().1.unwrap());
-    }
-    for i in 0..13 {
-        let dummy = Vertex::new(i + 13);
-        v.push(dummy);
-        let el = link(v[i], dummy, 0);
-        es.push(el);
     }
     assert!(path_query(v[1], v[0]) == 1);
     assert!(path_query(v[0], v[4]) == 5);
