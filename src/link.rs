@@ -2,21 +2,21 @@ use std::ptr::NonNull;
 use crate::node::*;
 use crate::expose::*;
 
-pub fn link<T: Cluster>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>, weight: T) -> NonNull<Edge<T>> {
+pub fn link<S, T: Cluster>(v: Vertex<S, T>, u: Vertex<S, T>, weight: T) -> NonNull<Edge<S, T>> {
     unsafe {
-        if v.as_ref().1.is_none() && u.as_ref().1.is_none() {
+        if v.handle().is_none() && u.handle().is_none() {
             Edge::new(v, u, weight)
         }
         else {
-            let nnu = u.as_ref().1;
-            let nnv = v.as_ref().1;
+            let nnu = u.handle();
+            let nnv = v.handle();
             let mut e = Edge::new(v, u, weight);
             let mut left = match nnu {
                 None => {
                     CompNode::Leaf(e)
                 }
                 Some(uu) => {
-                    let mut uu = expose(uu);
+                    let mut uu = expose_raw(uu);
                     if uu.endpoints(1) == u {
                         uu.reverse();
                         uu.push();
@@ -65,7 +65,7 @@ pub fn link<T: Cluster>(v: NonNull<Vertex<T>>, u: NonNull<Vertex<T>>, weight: T)
             match nnv {
                 None => {}
                 Some(vv) => {
-                    let mut vv = expose(vv);
+                    let mut vv = expose_raw(vv);
                     if vv.endpoints(0) == v {
                         vv.reverse();
                         vv.push();
