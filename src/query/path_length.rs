@@ -4,8 +4,8 @@ use crate::path_query::*;
 
 impl Cluster for usize {
     fn identity() -> Self { 0 }
-    fn compress(left: Self, right: Self, _: Self) -> Self { left + right }
-    fn rake(_: Self, _: Self) -> Self { Self::identity() }
+    fn compress(left: Self, right: Self) -> Self { left + right }
+    fn rake(a: Self, _: Self) -> Self { a }
     fn reverse(&mut self) {}
 }
 

@@ -4,7 +4,7 @@ use crate::link::*;
 
 pub trait Cluster: Clone {
     fn identity() -> Self;
-    fn compress(left: Self, right: Self, rake: Self) -> Self;
+    fn compress(left: Self, right: Self) -> Self;
     fn rake(left: Self, right: Self) -> Self;
     fn reverse(&mut self);
 }
@@ -225,10 +225,10 @@ impl<S, T: Cluster> TVertex<S, T> for Compress<S, T> {
         self.v[0] = self.ch[0].endpoints(0);
         self.v[1] = self.ch[1].endpoints(1);
         //self.fold = self.ch[0].fold() + self.ch[1].fold();
-        self.fold = T::compress(self.ch[0].fold(), self.ch[1].fold(), match self.rake {
+        self.fold = T::compress(T::rake(self.ch[0].fold(), match self.rake {
             Some(r) => r.fold(),
             None => T::identity(),
-        });
+        }), self.ch[1].fold());
         *self.ch[0].endpoints(1).handle_mut() = Some(CompNode::Node(self.me));
         assert!(self.ch[0].endpoints(1) == self.ch[1].endpoints(0));
         match self.parent() {

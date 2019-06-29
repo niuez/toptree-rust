@@ -31,8 +31,7 @@ impl Cluster for Farthest {
             length: 0,
         }
     }
-    fn compress(a: Self, b: Self, rake: Self) -> Self {
-        let a = Self::rake(a, rake);
+    fn compress(a: Self, b: Self) -> Self {
         Farthest {
             ans: std::cmp::max(a.max_dist_right, b.max_dist_left),
             max_dist_left: std::cmp::max(a.max_dist_left, a.length + b.max_dist_left),

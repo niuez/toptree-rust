@@ -31,8 +31,7 @@ impl Cluster for Diameter {
             length: 0,
         }
     }
-    fn compress(a: Self, b: Self, rake: Self) -> Self {
-        let a = Self::rake(a, rake);
+    fn compress(a: Self, b: Self) -> Self {
         Diameter {
             diam: *[ a.diam, b.diam, a.max_dist_right + b.max_dist_left].into_iter().max().unwrap(),
             max_dist_left: std::cmp::max(a.max_dist_left, a.length + b.max_dist_left),
