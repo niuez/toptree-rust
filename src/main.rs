@@ -12,5 +12,6 @@ pub mod query;
 fn main(){
     query::path_length::path_length_test();
     query::diameter::diameter_cut_test();
+    query::farthest_vertex::farthest_test();
     //query::diameter::diameter_test();
 }
