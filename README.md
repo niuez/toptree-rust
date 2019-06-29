@@ -69,5 +69,4 @@ impl Cluster for Diameter {
 
 ## TODO
 
-- cut
 - update query
