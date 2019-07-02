@@ -5,6 +5,7 @@ pub mod expose;
 pub mod link;
 pub mod cut;
 pub mod path_query;
+pub mod select;
 pub mod debug;
 
 pub mod query;
