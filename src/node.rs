@@ -9,10 +9,6 @@ pub trait Cluster: Clone {
     fn reverse(&mut self);
 }
 
-pub trait Select: Cluster {
-    fn select(left: Self, right: Self) -> usize;
-}
-
 pub type Link<N> = Option<N>;
 
 pub struct VertexRaw<S, T: Cluster> {
