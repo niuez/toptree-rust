@@ -22,15 +22,15 @@ pub fn select<T: Cluster, F: Fn(T, T) -> usize>(v : Vertex<T>, sel: F) -> (Verte
             n.as_ref().child(0).push();
             n.as_ref().child(1).push();
             if let Some(mut r) = n.as_ref().rake() { r.push(); }
-            let a = n.as_ref().child(0).fold();
-            let b = n.as_ref().child(1).fold();
-            let r = match n.as_ref().rake() {
-                Some(r) => r.fold(),
-                None => T::identity(),
+            let a = n.as_ref().child(0);
+            let b = n.as_ref().child(1);
+            let r = n.as_ref().rake();
+            let dir = match r {
+                Some(r) => sel(T::rake(a.fold(), r.fold(), a.endpoints(0).value(), r.endpoints(0).value(), a.endpoints(1).value()), b.fold()),
+                None => sel(a.fold(), b.fold()),
             };
-            let dir = sel(T::rake(a.clone(), r.clone()), b);
             node = if dir == 0 {
-                let dir = sel(a, r);
+                let dir = sel(a.fold(), r.unwrap().fold());
                 if dir == 0 { n.as_ref().child(0) }
                 else { select_rake(n.as_ref().rake().unwrap(), &sel) }
             }
