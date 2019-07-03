@@ -1,7 +1,7 @@
 use crate::node::*;
 use crate::expose::*;
 
-fn select_rake<S, T: Cluster, F: Fn(T, T) -> usize>(mut rake: RakeNode<S, T>, sel: F) -> CompNode<S, T> {
+fn select_rake<T: Cluster, F: Fn(T, T) -> usize>(mut rake: RakeNode<T>, sel: F) -> CompNode<T> {
     unsafe {
         rake.push();
         while let RakeNode::Node(r) = rake {
@@ -14,7 +14,7 @@ fn select_rake<S, T: Cluster, F: Fn(T, T) -> usize>(mut rake: RakeNode<S, T>, se
     }
 }
 
-pub fn select<S, T: Cluster, F: Fn(T, T) -> usize>(v : Vertex<S, T>, sel: F) -> (Vertex<S, T>, Vertex<S, T>) {
+pub fn select<T: Cluster, F: Fn(T, T) -> usize>(v : Vertex<T>, sel: F) -> (Vertex<T>, Vertex<T>) {
     let mut node = expose(v);
     unsafe {
         node.push();

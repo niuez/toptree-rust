@@ -1,7 +1,7 @@
 use crate::node::*;
 use crate::expose::*;
 
-pub fn path_query<S, T: Cluster>(v: Vertex<S, T>, u: Vertex<S, T>) -> T {
+pub fn path_query<T: Cluster>(v: Vertex<T>, u: Vertex<T>) -> T {
     unsafe {
         soft_expose(v, u);
         let mut root = v.handle().unwrap();

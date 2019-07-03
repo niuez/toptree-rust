@@ -2,7 +2,7 @@ use crate::node::*;
 use crate::parent_dir::*;
 use crate::splay::*;
 
-pub fn expose_raw<S, T: Cluster>(mut node: CompNode<S, T>) -> CompNode<S, T> {
+pub fn expose_raw<T: Cluster>(mut node: CompNode<T>) -> CompNode<T> {
     loop {
         //println!("function expose --- node");
         //test_comp_print(node);
@@ -93,11 +93,11 @@ pub fn expose_raw<S, T: Cluster>(mut node: CompNode<S, T>) -> CompNode<S, T> {
     node
 }
 
-pub fn expose<S, T: Cluster>(ver: Vertex<S, T>) -> CompNode<S, T> {
+pub fn expose<T: Cluster>(ver: Vertex<T>) -> CompNode<T> {
     expose_raw(ver.handle().unwrap())
 }
 
-pub fn soft_expose<S, T: Cluster>(v: Vertex<S, T>, u: Vertex<S, T>) {
+pub fn soft_expose<T: Cluster>(v: Vertex<T>, u: Vertex<T>) {
     unsafe {
         let mut root = expose(v);
         if v.handle() == u.handle() {

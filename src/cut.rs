@@ -3,7 +3,7 @@ use crate::node::*;
 use crate::expose::*;
 use crate::splay::*;
 
-fn bring<S, T: Cluster>(mut root: NonNull<Compress<S, T>>) {
+fn bring<T: Cluster>(mut root: NonNull<Compress<T>>) {
     unsafe {
         match root.as_ref().rake() {
             None => {
@@ -56,7 +56,7 @@ fn bring<S, T: Cluster>(mut root: NonNull<Compress<S, T>>) {
     }
 }
 
-pub fn cut<S, T: Cluster>(v: Vertex<S, T>, u: Vertex<S, T>) {
+pub fn cut<T: Cluster>(v: Vertex<T>, u: Vertex<T>) {
     unsafe {
         soft_expose(v, u);
         let mut root = v.handle().unwrap();

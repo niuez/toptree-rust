@@ -3,6 +3,7 @@ use crate::parent_dir::*;
 use crate::link::*;
 
 pub trait Cluster: Clone {
+    type V: Default;
     fn identity() -> Self;
     fn compress(left: Self, right: Self) -> Self;
     fn rake(left: Self, right: Self) -> Self;
@@ -11,44 +12,44 @@ pub trait Cluster: Clone {
 
 pub type Link<N> = Option<N>;
 
-pub struct VertexRaw<S, T: Cluster> {
-    val: Option<S>,
-    handle: Option<CompNode<S, T>>
+pub struct VertexRaw<T: Cluster> {
+    val: T::V,
+    handle: Option<CompNode<T>>
 }
 
-impl<S, T: Cluster> VertexRaw<S, T> {
-    pub fn new(val: S) -> Self {
+impl<T: Cluster> VertexRaw<T> {
+    pub fn new(val: T::V) -> Self {
         VertexRaw {
-            val: Some(val),
+            val: val,
             handle: None,
         }
     }
     pub fn dummy() -> Self {
         VertexRaw {
-            val: None,
+            val: T::V::default(),
             handle: None,
         }
     }
-    pub fn handle(&self) -> Option<CompNode<S, T>> {
+    pub fn handle(&self) -> Option<CompNode<T>> {
         self.handle
     }
-    pub fn handle_mut(&mut self) -> &mut Option<CompNode<S, T>> {
+    pub fn handle_mut(&mut self) -> &mut Option<CompNode<T>> {
         &mut self.handle
     }
-    pub fn value(&self) -> &S {
-        &self.val.as_ref().unwrap()
+    pub fn value(&self) -> &T::V {
+        &self.val
     }
 }
 
-pub struct Vertex<S, T: Cluster> {
-    vertex: NonNull<VertexRaw<S, T>>,
+pub struct Vertex<T: Cluster> {
+    vertex: NonNull<VertexRaw<T>>,
 }
 
-impl<S, T: Cluster> Vertex<S, T> {
+impl<T: Cluster> Vertex<T> {
     pub fn dangling() -> Self {
         Vertex { vertex: NonNull::dangling() }
     }
-    pub fn new(val: S) -> Self {
+    pub fn new(val: T::V) -> Self {
         unsafe {
             let v = Vertex { vertex: NonNull::new_unchecked(Box::into_raw(Box::new(VertexRaw::new(val)))) };
             let dummy = Vertex { vertex: NonNull::new_unchecked(Box::into_raw(Box::new(VertexRaw::dummy()))) };
@@ -56,59 +57,59 @@ impl<S, T: Cluster> Vertex<S, T> {
             v
         }
     }
-    pub fn handle(&self) -> Option<CompNode<S, T>> {
+    pub fn handle(&self) -> Option<CompNode<T>> {
         unsafe { self.vertex.as_ref().handle() }
     }
-    pub fn handle_mut(&mut self) -> &mut Option<CompNode<S, T>> {
+    pub fn handle_mut(&mut self) -> &mut Option<CompNode<T>> {
         unsafe { self.vertex.as_mut().handle_mut() }
     }
-    pub fn value(&self) -> &S {
+    pub fn value(&self) -> &T::V {
         unsafe { self.vertex.as_ref().value() }
     }
 }
 
-impl<S, T: Cluster> Clone for Vertex<S, T> {
+impl<T: Cluster> Clone for Vertex<T> {
     fn clone(&self) -> Self {
         Vertex { vertex: self.vertex.clone() }
     }
 }
-impl<S, T: Cluster> Copy for Vertex<S, T> {}
-impl<S, T: Cluster> PartialEq for Vertex<S, T> {
+impl<T: Cluster> Copy for Vertex<T> {}
+impl<T: Cluster> PartialEq for Vertex<T> {
     fn eq(&self, other: &Self) -> bool {
         self.vertex == other.vertex
     }
 }
 
-pub enum CompNode<S, T: Cluster> {
-    Node(NonNull<Compress<S, T>>),
-    Leaf(NonNull<Edge<S, T>>),
+pub enum CompNode<T: Cluster> {
+    Node(NonNull<Compress<T>>),
+    Leaf(NonNull<Edge<T>>),
 }
 
-pub enum RakeNode<S, T: Cluster> {
-    Node(NonNull<Rake<S, T>>),
-    Leaf(CompNode<S, T>),
+pub enum RakeNode<T: Cluster> {
+    Node(NonNull<Rake<T>>),
+    Leaf(CompNode<T>),
 }
 
-pub enum ParentNode<S, T: Cluster> {
-    Compress(NonNull<Compress<S, T>>),
-    Rake(NonNull<Rake<S, T>>),
+pub enum ParentNode<T: Cluster> {
+    Compress(NonNull<Compress<T>>),
+    Rake(NonNull<Rake<T>>),
 }
 
-pub struct Edge<S, T: Cluster> {
-    v: [Vertex<S, T>; 2],
-    par: Link<ParentNode<S, T>>,
-    me: NonNull<Edge<S, T>>,
+pub struct Edge<T: Cluster> {
+    v: [Vertex<T>; 2],
+    par: Link<ParentNode<T>>,
+    me: NonNull<Edge<T>>,
 
 
     pub val: T,
 }
 
-pub struct Compress<S, T: Cluster> {
-    ch: [CompNode<S, T>; 2],
-    v: [Vertex<S, T>; 2],
-    rake: Link<RakeNode<S, T>>,
-    par: Link<ParentNode<S, T>>,
-    me: NonNull<Compress<S, T>>,
+pub struct Compress<T: Cluster> {
+    ch: [CompNode<T>; 2],
+    v: [Vertex<T>; 2],
+    rake: Link<RakeNode<T>>,
+    par: Link<ParentNode<T>>,
+    me: NonNull<Compress<T>>,
     rev: bool,
 
     pub guard: bool,
@@ -117,15 +118,15 @@ pub struct Compress<S, T: Cluster> {
     pub fold: T
 }
 
-pub struct Rake<S, T: Cluster> {
-    ch: [RakeNode<S, T>; 2],
-    par: Link<ParentNode<S, T>>,
+pub struct Rake<T: Cluster> {
+    ch: [RakeNode<T>; 2],
+    par: Link<ParentNode<T>>,
 
     fold: T,
 }
 
-impl<S, T: Cluster> Edge<S, T> {
-    pub fn new(v: Vertex<S, T>, u: Vertex<S, T>, val: T) -> NonNull<Edge<S, T>> {
+impl<T: Cluster> Edge<T> {
+    pub fn new(v: Vertex<T>, u: Vertex<T>, val: T) -> NonNull<Edge<T>> {
         unsafe {
             let mut e = NonNull::new_unchecked(Box::into_raw(Box::new(Edge {
                 v: [v, u],
@@ -140,8 +141,8 @@ impl<S, T: Cluster> Edge<S, T> {
     }
 }
 
-impl<S, T: Cluster> Compress<S, T> {
-    pub fn new(left: CompNode<S, T>, right: CompNode<S, T>) -> NonNull<Compress<S, T>> {
+impl<T: Cluster> Compress<T> {
+    pub fn new(left: CompNode<T>, right: CompNode<T>) -> NonNull<Compress<T>> {
         unsafe {
             let mut n = NonNull::new_unchecked(Box::into_raw(Box::new(Compress {
                 ch: [left, right],
@@ -160,8 +161,8 @@ impl<S, T: Cluster> Compress<S, T> {
     }
 }
 
-impl<S, T: Cluster> Rake<S, T> {
-    pub fn new(left: RakeNode<S, T>, right: RakeNode<S, T>) -> NonNull<Rake<S, T>> {
+impl<T: Cluster> Rake<T> {
+    pub fn new(left: RakeNode<T>, right: RakeNode<T>) -> NonNull<Rake<T>> {
         unsafe {
             let mut r = NonNull::new_unchecked(Box::into_raw(Box::new(Rake {
                 ch: [left, right],
@@ -174,21 +175,21 @@ impl<S, T: Cluster> Rake<S, T> {
     }
 }
 
-pub trait TVertex<S, T: Cluster> {
+pub trait TVertex<T: Cluster> {
     fn fix(&mut self);
     fn push(&mut self);
     fn reverse(&mut self);
-    fn parent(&self) -> Link<ParentNode<S, T>>;
-    fn parent_mut(&mut self) -> &mut Link<ParentNode<S, T>>;
+    fn parent(&self) -> Link<ParentNode<T>>;
+    fn parent_mut(&mut self) -> &mut Link<ParentNode<T>>;
 }
 
-pub trait Node<S, T: Cluster>: TVertex<S, T> {
-    type Child: TVertex<S, T>;
+pub trait Node<T: Cluster>: TVertex<T> {
+    type Child: TVertex<T>;
     fn child(&self, dir: usize) -> Self::Child;
     fn child_mut(&mut self, dir: usize) -> &mut Self::Child;
 }
 
-impl<S, T: Cluster> TVertex<S, T> for Edge<S, T> {
+impl<T: Cluster> TVertex<T> for Edge<T> {
     fn fix(&mut self) {
         match self.parent() {
             Some(ParentNode::Compress(_)) => {
@@ -210,16 +211,16 @@ impl<S, T: Cluster> TVertex<S, T> for Edge<S, T> {
         self.v.swap(0, 1);
         self.val.reverse();
     }
-    fn parent(&self) -> Link<ParentNode<S, T>> { self.par }
-    fn parent_mut(&mut self) -> &mut Link<ParentNode<S, T>> { &mut self.par }
+    fn parent(&self) -> Link<ParentNode<T>> { self.par }
+    fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> { &mut self.par }
 }
 
-impl<S, T: Cluster> Compress<S, T> {
-    pub fn rake(&self) -> Link<RakeNode<S, T>> { self.rake }
-    pub fn rake_mut(&mut self) -> &mut Link<RakeNode<S, T>> { &mut self.rake }
+impl<T: Cluster> Compress<T> {
+    pub fn rake(&self) -> Link<RakeNode<T>> { self.rake }
+    pub fn rake_mut(&mut self) -> &mut Link<RakeNode<T>> { &mut self.rake }
 }
 
-impl<S, T: Cluster> TVertex<S, T> for Compress<S, T> {
+impl<T: Cluster> TVertex<T> for Compress<T> {
     fn fix(&mut self) {
         self.push();
         self.v[0] = self.ch[0].endpoints(0);
@@ -229,6 +230,7 @@ impl<S, T: Cluster> TVertex<S, T> for Compress<S, T> {
             Some(r) => r.fold(),
             None => T::identity(),
         }), self.ch[1].fold());
+
         *self.ch[0].endpoints(1).handle_mut() = Some(CompNode::Node(self.me));
         assert!(self.ch[0].endpoints(1) == self.ch[1].endpoints(0));
         match self.parent() {
@@ -260,17 +262,17 @@ impl<S, T: Cluster> TVertex<S, T> for Compress<S, T> {
         self.rev ^= true;
         self.push();
     }
-    fn parent(&self) -> Link<ParentNode<S, T>> { self.par }
-    fn parent_mut(&mut self) -> &mut Link<ParentNode<S, T>> { &mut self.par }
+    fn parent(&self) -> Link<ParentNode<T>> { self.par }
+    fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> { &mut self.par }
 }
 
-impl<S, T: Cluster> Node<S, T> for Compress<S, T> {
-    type Child = CompNode<S, T>;
+impl<T: Cluster> Node<T> for Compress<T> {
+    type Child = CompNode<T>;
     fn child(&self, dir: usize) -> Self::Child { self.ch[dir] }
     fn child_mut(&mut self, dir: usize) -> &mut Self::Child { &mut self.ch[dir] }
 }
 
-impl<S, T: Cluster> TVertex<S, T> for Rake<S, T> {
+impl<T: Cluster> TVertex<T> for Rake<T> {
     fn fix(&mut self) {
         self.push();
         self.fold = T::rake(self.ch[0].fold(), self.ch[1].fold());
@@ -281,18 +283,18 @@ impl<S, T: Cluster> TVertex<S, T> for Rake<S, T> {
         self.fold.reverse();
         self.push();
     }
-    fn parent(&self) -> Link<ParentNode<S, T>> { self.par }
-    fn parent_mut(&mut self) -> &mut Link<ParentNode<S, T>> { &mut self.par }
+    fn parent(&self) -> Link<ParentNode<T>> { self.par }
+    fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> { &mut self.par }
 }
 
-impl<S, T: Cluster> Node<S, T> for Rake<S, T> {
-    type Child = RakeNode<S, T>;
+impl<T: Cluster> Node<T> for Rake<T> {
+    type Child = RakeNode<T>;
     fn child(&self, dir: usize) -> Self::Child { self.ch[dir] }
     fn child_mut(&mut self, dir: usize) -> &mut Self::Child { &mut self.ch[dir] }
 }
 
-impl<S, T: Cluster> CompNode<S, T> {
-    pub fn endpoints(&self, dir: usize) -> Vertex<S, T> {
+impl<T: Cluster> CompNode<T> {
+    pub fn endpoints(&self, dir: usize) -> Vertex<T> {
         unsafe {
             match *self {
                 CompNode::Node(node) => node.as_ref().v[dir],
@@ -310,7 +312,7 @@ impl<S, T: Cluster> CompNode<S, T> {
     }
 }
 
-impl<S, T: Cluster> RakeNode<S, T> {
+impl<T: Cluster> RakeNode<T> {
     pub fn fold(&self) -> T {
         unsafe {
             match *self {
@@ -321,7 +323,7 @@ impl<S, T: Cluster> RakeNode<S, T> {
     }
 }
 
-impl<S, T: Cluster> TVertex<S, T> for CompNode<S, T> {
+impl<T: Cluster> TVertex<T> for CompNode<T> {
     fn fix(&mut self) {
         unsafe {
             match *self {
@@ -346,7 +348,7 @@ impl<S, T: Cluster> TVertex<S, T> for CompNode<S, T> {
             }
         }
     }
-    fn parent(&self) -> Link<ParentNode<S, T>> {
+    fn parent(&self) -> Link<ParentNode<T>> {
         unsafe {
             match *self {
                 CompNode::Node(node) => node.as_ref().parent(),
@@ -354,7 +356,7 @@ impl<S, T: Cluster> TVertex<S, T> for CompNode<S, T> {
             }
         }
     }
-    fn parent_mut(&mut self) -> &mut Link<ParentNode<S, T>> {
+    fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> {
         unsafe {
             match self {
                 CompNode::Node(ref mut node) => node.as_mut().parent_mut(),
@@ -364,7 +366,7 @@ impl<S, T: Cluster> TVertex<S, T> for CompNode<S, T> {
     }
 }
 
-impl<S, T: Cluster> TVertex<S, T> for RakeNode<S, T> {
+impl<T: Cluster> TVertex<T> for RakeNode<T> {
     fn fix(&mut self) {
         unsafe {
             match *self {
@@ -389,7 +391,7 @@ impl<S, T: Cluster> TVertex<S, T> for RakeNode<S, T> {
             }
         }
     }
-    fn parent(&self) -> Link<ParentNode<S, T>> {
+    fn parent(&self) -> Link<ParentNode<T>> {
         unsafe {
             match *self {
                 RakeNode::Node(node) => node.as_ref().parent(),
@@ -397,7 +399,7 @@ impl<S, T: Cluster> TVertex<S, T> for RakeNode<S, T> {
             }
         }
     }
-    fn parent_mut(&mut self) -> &mut Link<ParentNode<S, T>> {
+    fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> {
         unsafe {
             match self {
                 RakeNode::Node(ref mut node) => node.as_mut().parent_mut(),
@@ -407,7 +409,7 @@ impl<S, T: Cluster> TVertex<S, T> for RakeNode<S, T> {
     }
 }
 
-impl<S, T: Cluster> TVertex<S, T> for ParentNode<S, T> {
+impl<T: Cluster> TVertex<T> for ParentNode<T> {
     fn fix(&mut self) {
         unsafe {
             match *self {
@@ -432,7 +434,7 @@ impl<S, T: Cluster> TVertex<S, T> for ParentNode<S, T> {
             }
         }
     }
-    fn parent(&self) -> Link<ParentNode<S, T>> {
+    fn parent(&self) -> Link<ParentNode<T>> {
         unsafe {
             match *self {
                 ParentNode::Compress(node) => node.as_ref().parent(),
@@ -440,7 +442,7 @@ impl<S, T: Cluster> TVertex<S, T> for ParentNode<S, T> {
             }
         }
     }
-    fn parent_mut(&mut self) -> &mut Link<ParentNode<S, T>> {
+    fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> {
         unsafe {
             match self {
                 ParentNode::Compress(ref mut node) => node.as_mut().parent_mut(),
@@ -450,7 +452,7 @@ impl<S, T: Cluster> TVertex<S, T> for ParentNode<S, T> {
     }
 }
 
-impl<S, T: Cluster> PartialEq for CompNode<S, T> {
+impl<T: Cluster> PartialEq for CompNode<T> {
     fn eq(&self, other: &Self) -> bool {
         match (*self, *other) {
             (CompNode::Node(a), CompNode::Node(b)) => a == b,
@@ -460,7 +462,7 @@ impl<S, T: Cluster> PartialEq for CompNode<S, T> {
     }
 }
 
-impl<S, T: Cluster> PartialEq for RakeNode<S, T> {
+impl<T: Cluster> PartialEq for RakeNode<T> {
     fn eq(&self, other: &Self) -> bool {
         match (*self, *other) {
             (RakeNode::Node(a), RakeNode::Node(b)) => a == b,
@@ -471,7 +473,7 @@ impl<S, T: Cluster> PartialEq for RakeNode<S, T> {
 }
 
 
-impl<S, T: Cluster> PartialEq for ParentNode<S, T> {
+impl<T: Cluster> PartialEq for ParentNode<T> {
     fn eq(&self, other: &Self) -> bool {
         match (*self, *other) {
             (ParentNode::Compress(a), ParentNode::Compress(b)) => a == b,
@@ -482,7 +484,7 @@ impl<S, T: Cluster> PartialEq for ParentNode<S, T> {
 }
 
 
-impl<S, T: Cluster> Clone for CompNode<S, T> {
+impl<T: Cluster> Clone for CompNode<T> {
     fn clone(&self) -> Self {
         match *self {
             CompNode::Node(a) => CompNode::Node(a),
@@ -491,7 +493,7 @@ impl<S, T: Cluster> Clone for CompNode<S, T> {
     }
 }
 
-impl<S, T: Cluster> Clone for RakeNode<S, T> {
+impl<T: Cluster> Clone for RakeNode<T> {
     fn clone(&self) -> Self {
         match *self {
             RakeNode::Node(a) => RakeNode::Node(a),
@@ -500,7 +502,7 @@ impl<S, T: Cluster> Clone for RakeNode<S, T> {
     }
 }
 
-impl<S, T: Cluster> Clone for ParentNode<S, T> {
+impl<T: Cluster> Clone for ParentNode<T> {
     fn clone(&self) -> Self {
         match *self {
             ParentNode::Compress(a) => ParentNode::Compress(a),
@@ -509,6 +511,6 @@ impl<S, T: Cluster> Clone for ParentNode<S, T> {
     }
 }
 
-impl<S, T: Cluster> Copy for CompNode<S, T> {}
-impl<S, T: Cluster> Copy for RakeNode<S, T> {}
-impl<S, T: Cluster> Copy for ParentNode<S, T> {}
+impl<T: Cluster> Copy for CompNode<T> {}
+impl<T: Cluster> Copy for RakeNode<T> {}
+impl<T: Cluster> Copy for ParentNode<T> {}

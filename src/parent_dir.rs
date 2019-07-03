@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
 use crate::node::*;
 
-pub fn parent_dir_comp<S, T: Cluster>(child: CompNode<S, T>) -> Option<(usize, NonNull<Compress<S, T>>)> {
+pub fn parent_dir_comp<T: Cluster>(child: CompNode<T>) -> Option<(usize, NonNull<Compress<T>>)> {
     unsafe {
         match child.parent() {
             Some(ParentNode::Compress(mut p)) => {
@@ -16,7 +16,7 @@ pub fn parent_dir_comp<S, T: Cluster>(child: CompNode<S, T>) -> Option<(usize, N
     }
 }
 
-pub fn parent_dir_comp_guard<S, T: Cluster>(child: CompNode<S, T>) -> Option<(usize, NonNull<Compress<S, T>>)> {
+pub fn parent_dir_comp_guard<T: Cluster>(child: CompNode<T>) -> Option<(usize, NonNull<Compress<T>>)> {
     unsafe {
         match child.parent() {
             Some(ParentNode::Compress(mut p)) => {
@@ -31,7 +31,7 @@ pub fn parent_dir_comp_guard<S, T: Cluster>(child: CompNode<S, T>) -> Option<(us
 }
 
 
-pub fn parent_dir_comp_rake<S, T: Cluster>(child: CompNode<S, T>) -> Option<(usize, NonNull<Rake<S, T>>)> { 
+pub fn parent_dir_comp_rake<T: Cluster>(child: CompNode<T>) -> Option<(usize, NonNull<Rake<T>>)> { 
     unsafe { 
         match child.parent() {
             Some(ParentNode::Rake(mut p)) => {
@@ -46,7 +46,7 @@ pub fn parent_dir_comp_rake<S, T: Cluster>(child: CompNode<S, T>) -> Option<(usi
 }
 
 
-pub fn parent_dir_rake<S, T: Cluster>(child: RakeNode<S, T>) -> Option<(usize, NonNull<Rake<S, T>>)> {
+pub fn parent_dir_rake<T: Cluster>(child: RakeNode<T>) -> Option<(usize, NonNull<Rake<T>>)> {
     unsafe {
         match child.parent() {
             Some(ParentNode::Rake(mut p)) => {

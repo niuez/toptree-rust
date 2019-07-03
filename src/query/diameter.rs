@@ -24,6 +24,7 @@ impl Diameter {
 }
 
 impl Cluster for Diameter {
+    type V = usize;
     fn identity() -> Self {
         Diameter {
             diam: 0,
