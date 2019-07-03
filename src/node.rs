@@ -120,6 +120,7 @@ pub struct Compress<T: Cluster> {
 
 pub struct Rake<T: Cluster> {
     ch: [RakeNode<T>; 2],
+    v: [Vertex<T>; 2],
     par: Link<ParentNode<T>>,
 
     fold: T,
@@ -166,6 +167,7 @@ impl<T: Cluster> Rake<T> {
         unsafe {
             let mut r = NonNull::new_unchecked(Box::into_raw(Box::new(Rake {
                 ch: [left, right],
+                v: [Vertex::dangling(), Vertex::dangling()],
                 par: None,
                 fold: T::identity()
             })));
@@ -275,6 +277,7 @@ impl<T: Cluster> Node<T> for Compress<T> {
 impl<T: Cluster> TVertex<T> for Rake<T> {
     fn fix(&mut self) {
         self.push();
+        self.v = [self.ch[0].endpoints(0), self.ch[0].endpoints(1)];
         self.fold = T::rake(self.ch[0].fold(), self.ch[1].fold());
     }
     fn push(&mut self) {
@@ -313,6 +316,14 @@ impl<T: Cluster> CompNode<T> {
 }
 
 impl<T: Cluster> RakeNode<T> {
+    pub fn endpoints(&self, dir: usize) -> Vertex<T> {
+        unsafe {
+            match *self {
+                RakeNode::Node(node) => node.as_ref().v[dir],
+                RakeNode::Leaf(leaf) => leaf.endpoints(dir),
+            }
+        }
+    }
     pub fn fold(&self) -> T {
         unsafe {
             match *self {
