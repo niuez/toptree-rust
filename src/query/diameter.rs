@@ -1,7 +1,7 @@
 use crate::node::*;
 use crate::link::*;
 use crate::cut::*;
-use crate::select::*;
+//use crate::select::*;
 use crate::expose::*;
 
 #[derive(Clone, Debug)]
@@ -33,7 +33,7 @@ impl Cluster for Diameter {
             length: 0,
         }
     }
-    fn compress(a: Self, b: Self) -> Self {
+    fn compress(a: Self, b: Self, _: usize, _: usize, _: usize) -> Self {
         Diameter {
             diam: *[ a.diam, b.diam, a.max_dist_right + b.max_dist_left].into_iter().max().unwrap(),
             max_dist_left: std::cmp::max(a.max_dist_left, a.length + b.max_dist_left),
@@ -41,7 +41,7 @@ impl Cluster for Diameter {
             length: a.length + b.length
         }
     }
-    fn rake(a: Self, b: Self) -> Self {
+    fn rake(a: Self, b: Self, _: usize, _: usize, _: usize) -> Self {
         Diameter {
             diam: *[ a.diam, b.diam, a.max_dist_right + b.max_dist_right ].into_iter().max().unwrap(),
             max_dist_left: std::cmp::max(a.max_dist_left, a.length + b.max_dist_right),
@@ -103,11 +103,11 @@ pub fn diameter_cut_test() {
         //println!("{:?}", (*a, *b, *w));
         //test_comp_endpoints(v[0].as_ref().1.unwrap());
     }
-    let center = select(v[0], |a, b| {
+    /* let center = select(v[0], |a, b| {
         if a.max_dist_right >= b.max_dist_left { 0 }
         else { 1 }
-    });
-    println!("center vertices {}, {}", center.0.value(), center.1.value());
+    }); 
+    println!("center vertices {}, {}", center.0.value(), center.1.value()); */
     cut(v[0], v[5]);
     println!("0 diameter = {}", expose(v[0]).fold().diam);
     println!("5 diameter = {}", expose(v[5]).fold().diam);

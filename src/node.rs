@@ -3,10 +3,10 @@ use crate::parent_dir::*;
 use crate::link::*;
 
 pub trait Cluster: Clone {
-    type V: Default;
+    type V: Default + Copy;
     fn identity() -> Self;
-    fn compress(left: Self, right: Self) -> Self;
-    fn rake(left: Self, right: Self) -> Self;
+    fn compress(left: Self, right: Self, a: Self::V, b: Self::V, c: Self::V) -> Self;
+    fn rake(left: Self, right: Self, a: Self::V, b: Self::V, c: Self::V) -> Self;
     fn reverse(&mut self);
 }
 
@@ -36,8 +36,8 @@ impl<T: Cluster> VertexRaw<T> {
     pub fn handle_mut(&mut self) -> &mut Option<CompNode<T>> {
         &mut self.handle
     }
-    pub fn value(&self) -> &T::V {
-        &self.val
+    pub fn value(&self) -> T::V {
+        self.val
     }
 }
 
@@ -63,7 +63,7 @@ impl<T: Cluster> Vertex<T> {
     pub fn handle_mut(&mut self) -> &mut Option<CompNode<T>> {
         unsafe { self.vertex.as_mut().handle_mut() }
     }
-    pub fn value(&self) -> &T::V {
+    pub fn value(&self) -> T::V {
         unsafe { self.vertex.as_ref().value() }
     }
 }
@@ -228,10 +228,14 @@ impl<T: Cluster> TVertex<T> for Compress<T> {
         self.v[0] = self.ch[0].endpoints(0);
         self.v[1] = self.ch[1].endpoints(1);
         //self.fold = self.ch[0].fold() + self.ch[1].fold();
-        self.fold = T::compress(T::rake(self.ch[0].fold(), match self.rake {
-            Some(r) => r.fold(),
-            None => T::identity(),
-        }), self.ch[1].fold());
+
+        self.fold = T::compress(
+            match self.rake {
+                Some(r) => T::rake(self.ch[0].fold(), r.fold(), self.ch[0].endpoints(0).value(), r.endpoints(0).value(), self.ch[0].endpoints(1).value()),
+                None => self.ch[0].fold(),
+            },
+            self.ch[1].fold(), self.ch[0].endpoints(0).value(), self.ch[1].endpoints(1).value(), self.ch[0].endpoints(1).value()
+            );
 
         *self.ch[0].endpoints(1).handle_mut() = Some(CompNode::Node(self.me));
         assert!(self.ch[0].endpoints(1) == self.ch[1].endpoints(0));
@@ -278,7 +282,7 @@ impl<T: Cluster> TVertex<T> for Rake<T> {
     fn fix(&mut self) {
         self.push();
         self.v = [self.ch[0].endpoints(0), self.ch[0].endpoints(1)];
-        self.fold = T::rake(self.ch[0].fold(), self.ch[1].fold());
+        self.fold = T::rake(self.ch[0].fold(), self.ch[1].fold(), self.ch[0].endpoints(0).value(), self.ch[1].endpoints(0).value(), self.ch[0].endpoints(1).value());
     }
     fn push(&mut self) {
     }
