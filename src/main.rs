@@ -11,9 +11,12 @@ pub mod debug;
 pub mod query;
 
 fn main(){
-    //query::center::center_test();
     //query::path_length::path_length_test();
-    query::diameter::diameter_cut_test();
+    //query::diameter::diameter_cut_test();
+    //query::center::center_test();
+    query::median::median_test();
+    query::median::median_easy();
+    query::median::median_easy2();
     //query::farthest_vertex::farthest_test();
     //query::diameter::diameter_test();
 }

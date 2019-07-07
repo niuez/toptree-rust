@@ -23,6 +23,7 @@ impl Center {
 }
 
 impl Cluster for Center {
+    type V = usize;
     fn identity() -> Self {
         Center {
             radius: 0,
@@ -31,7 +32,7 @@ impl Cluster for Center {
             length: 0,
         }
     }
-    fn compress(a: Self, b: Self) -> Self {
+    fn compress(a: Self, b: Self, _: usize, _: usize, _: usize) -> Self {
         Center {
             radius: std::cmp::max(a.max_dist_right, b.max_dist_left),
             max_dist_left: std::cmp::max(a.max_dist_left, a.length + b.max_dist_left),
@@ -39,7 +40,7 @@ impl Cluster for Center {
             length: a.length + b.length
         }
     }
-    fn rake(a: Self, b: Self) -> Self {
+    fn rake(a: Self, b: Self, _: usize, _: usize, _: usize) -> Self {
         Center {
             radius: 0,
             max_dist_left: std::cmp::max(a.max_dist_left, a.length + b.max_dist_right),
@@ -73,7 +74,7 @@ pub fn center_test() {
     for (a, b, w) in edges.iter() {
         es.push(link(v[*a], v[*b], Center::new(*w)));
     }
-    let center = select(v[0], |a, b| {
+    let center = select(v[0], |a, b, _, _, _| {
         if a.max_dist_right >= b.max_dist_left { 0 }
         else { 1 }
     });

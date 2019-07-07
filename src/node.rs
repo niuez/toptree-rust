@@ -287,7 +287,6 @@ impl<T: Cluster> TVertex<T> for Rake<T> {
     fn push(&mut self) {
     }
     fn reverse(&mut self) {
-        self.fold.reverse();
         self.push();
     }
     fn parent(&self) -> Link<ParentNode<T>> { self.par }
