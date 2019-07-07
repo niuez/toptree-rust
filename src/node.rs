@@ -1,6 +1,7 @@
 use std::ptr::NonNull;
 use crate::parent_dir::*;
 use crate::link::*;
+use crate::expose::*;
 
 pub trait Cluster: Clone {
     type V: Default + Copy;
@@ -39,6 +40,11 @@ impl<T: Cluster> VertexRaw<T> {
     pub fn value(&self) -> T::V {
         self.val
     }
+    pub fn value_set(&mut self, val: T::V) {
+        let mut root = expose_raw(self.handle().unwrap());
+        self.val = val;
+        root.fix();
+    }
 }
 
 pub struct Vertex<T: Cluster> {
@@ -65,6 +71,9 @@ impl<T: Cluster> Vertex<T> {
     }
     pub fn value(&self) -> T::V {
         unsafe { self.vertex.as_ref().value() }
+    }
+    pub fn value_set(&mut self, val: T::V) {
+        unsafe { self.vertex.as_mut().value_set(val); }
     }
 }
 
