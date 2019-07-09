@@ -5,6 +5,7 @@ fn select_rake<T: Cluster, F: Fn(T, T, T::V, T::V, T::V) -> usize>(mut rake: Rak
     unsafe {
         rake.push();
         while let RakeNode::Node(r) = rake {
+
             r.as_ref().child(0).push();
             r.as_ref().child(0).fix();
             r.as_ref().child(1).push();
@@ -55,36 +56,46 @@ pub fn select<T: Cluster, F: Fn(T, T, T::V, T::V, T::V) -> usize>(v : Vertex<T>,
                 a0, b1, a1
             );
             node = if dir == 0 {
-                let mut rbf = bf.clone();
-                rbf.reverse();
-                let rb0 = b1;
-                let rb1 = b0;
-                let (mut rf, r0, r1) = (T::rake(r.unwrap().fold(), rbf.clone(), r.unwrap().endpoints(0).value(), rb0, r.unwrap().endpoints(1).value()), r.unwrap().endpoints(0).value(), r.unwrap().endpoints(1).value());
-                let dir = sel(af, rf.clone(), a0, r0, a1);
-                if dir == 0 {
-                    rf.reverse();
-                    right = Some((rf, r1, r0));
-                    n.as_ref().child(0)
+                if let Some(_) = r {
+                    let mut rbf = bf.clone();
+                    rbf.reverse();
+                    let rb0 = b1;
+                    let _rb1 = b0;
+                    let (mut rf, r0, r1) = (T::rake(r.unwrap().fold(), rbf.clone(), r.unwrap().endpoints(0).value(), rb0, r.unwrap().endpoints(1).value()), r.unwrap().endpoints(0).value(), r.unwrap().endpoints(1).value());
+                    let dir = sel(af.clone(), rf.clone(), a0, r0, a1);
+                    if dir == 0 {
+                        rf.reverse();
+                        right = Some((rf, r1, r0));
+                        n.as_ref().child(0)
+                    }
+                    else {
+                        left = None;
+                        right = Some((T::rake(af, rbf, a0, rb0, a1), a0, a1));
+                        let res = select_rake(n.as_ref().rake().unwrap(), &sel, right.as_mut().unwrap());
+                        right = if let Some((mut rf, r0, r1)) = right.take() {
+                            rf.reverse();
+                            Some((rf, r1, r0))
+                        }
+                        else { None };
+                        res
+                    }
                 }
                 else {
-                    right = match left.take() {
-                        Some((lf, l0, l1)) => {
-                            Some((T::rake(lf, rbf, l0, rb0, l1), l0, l1))
-                        }
-                        None => Some((rbf, rb0, rb1)),
-                    };
-                    select_rake(n.as_ref().rake().unwrap(), &sel, right.as_mut().unwrap())
+                    right = Some((bf, b0, b1));
+                    n.as_ref().child(0)
                 }
             }
             else {
-                left = Some((af, a0, a1));
+                left = match r {
+                    Some(r) => Some((T::rake(af.clone(), r.fold(), a0, r.endpoints(0).value(), a1), a0, a1)),
+                    None => Some((af, a0, a1)),
+                };
                 n.as_ref().child(1)
             };
             node.push();
         }
     }
     if let CompNode::Leaf(_) = node {
-        soft_expose(node.endpoints(0), node.endpoints(1));
         (node.endpoints(0), node.endpoints(1))
     }
     else { unreachable!() }

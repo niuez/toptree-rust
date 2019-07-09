@@ -53,7 +53,9 @@ pub fn expose_raw<T: Cluster>(mut node: CompNode<T>) -> CompNode<T> {
         if dir == 1 {
             unsafe {
                 n.as_ref().child(dir).reverse();
+                n.as_ref().child(dir).push();
                 node.reverse();
+                node.push();
             }
         }
         if let Some((n_dir, mut rake)) = parent_dir_rake(RakeNode::Leaf(node)) {
@@ -66,10 +68,10 @@ pub fn expose_raw<T: Cluster>(mut node: CompNode<T>) -> CompNode<T> {
                 nch.fix();
                 rake.as_mut().fix();
                 node.fix();
+                n.as_mut().fix();
                 splay_rake(rake);
                 //println!("=================2===================");
                 //test_comp_endpoints(CompNode::Node(n));
-                n.as_mut().fix();
             }
         }
         else {
@@ -109,11 +111,13 @@ pub fn soft_expose<T: Cluster>(v: Vertex<T>, u: Vertex<T>) {
         }
 
         if root.endpoints(0) == v {
-            root.reverse();
-            root.push();
+            unreachable!();
+            //root.reverse();
+            //root.push();
         }
         if root.endpoints(1) == v {
-            expose(u);
+            unreachable!();
+            //expose(u);
         }
         else if let CompNode::Node(mut r) = root {
             r.as_mut().guard = true;
@@ -125,6 +129,7 @@ pub fn soft_expose<T: Cluster>(v: Vertex<T>, u: Vertex<T>) {
             r.as_mut().fix();
             if parent_dir_comp(soot).unwrap().0 == 0 {
                 root.reverse();
+                root.push();
             }
         }
         else {

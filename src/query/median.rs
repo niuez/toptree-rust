@@ -3,8 +3,9 @@ use crate::link::*;
 use crate::select::*;
 use crate::expose::*;
 use crate::path_query::*;
+use crate::cut::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Median {
     inter_weight: usize,
     left_sum: usize,
@@ -59,7 +60,6 @@ impl Cluster for Median {
     }
 }
 
-
 pub fn median_test() {
     println!("median test");
     let v: Vec<_> = (0..13).map(|_| Vertex::new(1)).collect();
@@ -104,74 +104,52 @@ pub fn median_test() {
     }
 }
 
-pub fn median_easy() {
-    println!("median easy");
-    let v: Vec<_> = (0..11).map(|_| Vertex::new(1)).collect();
-    let edges = [
-        (0usize, 1usize, 1usize),
-        (1usize, 2usize, 2usize),
-        (2, 3, 3),
-        (3, 4, 4),
-        (4, 5, 5),
-        (5, 6, 6),
-        (6, 7, 7),
-        (7, 8, 8),
-        (8, 9, 9),
-        (9, 10, 10),
-    ];
-    let mut es = Vec::new();
-    for (a, b, w) in edges.iter() {
-        es.push(link(v[*a], v[*b], Median::new(*w)));
-    }
-    let median = select(v[0], |a, b, av, bv, cv| {
-        println!("left {} right {}", a.inter_weight + av + cv, b.inter_weight + bv + cv);
-        if a.inter_weight + av + cv >= b.inter_weight + bv + cv { 0 }
-        else { 1 }
-    });
-    println!("median vertices {}, {}", v.iter().position(|vv| *vv == median.0).unwrap(), v.iter().position(|vv| *vv == median.1).unwrap());
-    println!("weight {}, {}", expose(median.0).fold().ans, expose(median.1).fold().ans);
-    for i in 0..11 {
-        let mut sum = 0;
-        for j in 0..11 {
-            if i == j { continue }
-            sum += path_query(v[i], v[j]).length;
-        }
-        println!("center {} -> sum = {}", i, sum);
-        println!("expose sum = {}", expose(v[i]).fold().ans);
-        println!("==================");
-    }
-}
+use std::io::Read;
 
-pub fn median_easy2() {
-    println!("median easy2");
-    let v: Vec<_> = (0..7).map(|_| Vertex::new(1)).collect();
-    let edges = [
-        (0usize, 1usize, 1usize),
-        (1usize, 2usize, 2usize),
-        (2, 3, 3),
-        (3, 4, 4),
-        (3, 5, 5),
-        (3, 6, 6),
-    ];
-    let mut es = Vec::new();
-    for (a, b, w) in edges.iter() {
-        es.push(link(v[*a], v[*b], Median::new(*w)));
-    }
-    let median = select(v[0], |a, b, av, bv, cv| {
-        println!("left {} right {}", a.inter_weight + av + cv, b.inter_weight + bv + cv);
-        if a.inter_weight + av + cv >= b.inter_weight + bv + cv { 0 }
-        else { 1 }
-    });
-    println!("median vertices {}, {}", v.iter().position(|vv| *vv == median.0).unwrap(), v.iter().position(|vv| *vv == median.1).unwrap());
-    println!("weight {}, {}", expose(median.0).fold().ans, expose(median.1).fold().ans);
-    for i in 0..7 {
-        let mut sum = 0;
-        for j in 0..7 {
-            if i == j { continue }
-            sum += path_query(v[i], v[j]).length;
+pub fn yuki772() {
+    let mut buf = String::new();
+    std::io::stdin().read_to_string(&mut buf).unwrap();
+    let mut iter = buf.split_whitespace();
+    let n: usize = iter.next().unwrap().parse().unwrap();
+    let q: usize = iter.next().unwrap().parse().unwrap();
+    let mut v: Vec<_> = (0..n).map(|_| Vertex::new(1)).collect();
+    let mut sum = 0;
+    for _ in 0..q {
+        let query: usize = iter.next().unwrap().parse().unwrap();
+        if query == 1 {
+            let a: usize = iter.next().unwrap().parse().unwrap();
+            let b: usize = iter.next().unwrap().parse().unwrap();
+            let c: usize = iter.next().unwrap().parse().unwrap();
+            let (a, b) = ((a - 1 + sum) % n, (b - 1 + sum) % n);
+            //println!("link {} {}", a, b);
+            link(v[a], v[b], Median::new(c));
         }
-        println!("center {} -> sum = {}", i, sum);
-        println!("expose sum = {}", expose(v[i]).fold().ans);
-        println!("==================");
+        else if query == 2 {
+            let a: usize = iter.next().unwrap().parse().unwrap();
+            let b: usize = iter.next().unwrap().parse().unwrap();
+            let (a, b) = ((a - 1 + sum) % n, (b - 1 + sum) % n);
+            //println!("cut {} {}", a, b);
+            cut(v[a], v[b]);
+        }
+        else if query == 3 {
+            let a: usize = iter.next().unwrap().parse().unwrap();
+            let a = (a - 1 + sum) % n;
+            let val = v[a].value();
+            v[a].value_set(1 - val);
+            let (x, y) = select(v[a], |a, b, av, bv, cv| {
+                if a.inter_weight + av + cv >= b.inter_weight + bv + cv { 0 }
+                else { 1 }
+            });
+            //println!("query 3 = {}", a);
+            let ans = std::cmp::min(expose(x).fold().ans, expose(y).fold().ans);
+            /* let ans = (0..n).filter(|i| {
+                let root = expose(v[a]);
+                expose(v[*i]);
+                root.parent().is_some() || *i == a
+            }).map(|i| expose(v[i]).fold().ans).min().unwrap(); */
+            sum = (sum + ans % n) % n;
+            println!("{}", ans);
+        }
     }
+
 }

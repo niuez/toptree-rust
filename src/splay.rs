@@ -21,7 +21,7 @@ pub fn rotate_comp<T: Cluster>(mut t: NonNull<Compress<T>>, mut x: NonNull<Compr
             *yy.as_mut().child_mut(xdir) = CompNode::Node(t);
             //println!("yy===========================");
             //test_comp_endpoints(CompNode::Node(yy));
-            yy.as_mut().fix();
+            if !yy.as_ref().guard { yy.as_mut().fix(); }
         }
         else if let Some((xdir, mut yy)) = rake_par {
             *yy.as_mut().child_mut(xdir) = RakeNode::Leaf(CompNode::Node(t));
@@ -51,8 +51,7 @@ pub fn rotate_rake<T: Cluster>(mut t: NonNull<Rake<T>>, mut x: NonNull<Rake<T>>,
             //test_comp_print(CompNode::Node(yy));
             //test_comp_print(yy.as_ref().child(0));
             //test_comp_print(yy.as_ref().child(1));
-
-            yy.as_mut().fix();
+            if !yy.as_ref().guard { yy.as_mut().fix(); }
         }
     }
 }
@@ -121,3 +120,4 @@ pub fn splay_rake<T: Cluster>(mut t: NonNull<Rake<T>>) {
         }
     }
 }
+

@@ -17,6 +17,7 @@ pub fn link<T: Cluster>(v: Vertex<T>, u: Vertex<T>, weight: T) -> NonNull<Edge<T
                 }
                 Some(uu) => {
                     let mut uu = expose_raw(uu);
+                    uu.push();
                     if uu.endpoints(1) == u {
                         uu.reverse();
                         uu.push();
@@ -47,12 +48,14 @@ pub fn link<T: Cluster>(v: Vertex<T>, u: Vertex<T>, weight: T) -> NonNull<Edge<T
                                 *b.parent_mut() = Some(ParentNode::Rake(rake));
                                 *left_ch.parent_mut() = Some(ParentNode::Rake(rake));
                                 left_ch.fix();
+                                b.fix();
                                 RakeNode::Node(rake)
                             }
                             None => {
                                 RakeNode::Leaf(left_ch)
                             }
                         };
+                        rake.fix();
                         *nu.as_mut().rake_mut() = Some(rake);
                         *rake.parent_mut() = Some(ParentNode::Compress(nu));
                         rake.fix();
@@ -66,6 +69,7 @@ pub fn link<T: Cluster>(v: Vertex<T>, u: Vertex<T>, weight: T) -> NonNull<Edge<T
                 None => {}
                 Some(vv) => {
                     let mut vv = expose_raw(vv);
+                    vv.push();
                     if vv.endpoints(0) == v {
                         vv.reverse();
                         vv.push();
@@ -105,6 +109,7 @@ pub fn link<T: Cluster>(v: Vertex<T>, u: Vertex<T>, weight: T) -> NonNull<Edge<T
                                 RakeNode::Leaf(right_ch)
                             }
                         };
+                        rake.fix();
                         *nv.as_mut().rake_mut() = Some(rake);
                         *rake.parent_mut() = Some(ParentNode::Compress(nv));
                         rake.fix();

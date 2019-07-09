@@ -30,7 +30,9 @@ fn bring<T: Cluster>(mut root: NonNull<Compress<T>>) {
                     right.as_mut().push();
                     rake = right;
                 }
+                root.as_mut().guard = true;
                 splay_rake(rake);
+                root.as_mut().guard = false;
                 let mut new_rake = rake.as_ref().child(0);
                 let mut new_right = if let RakeNode::Leaf(right) = rake.as_ref().child(1) {
                     right
@@ -70,9 +72,9 @@ pub fn cut<T: Cluster>(v: Vertex<T>, u: Vertex<T>) {
 
             if let CompNode::Node(right) = right {
                 if let CompNode::Leaf(e) = right.as_ref().child(1) {
-                    let _ = Box::from_raw(e.as_ptr());
                     bring(right);
                     bring(root);
+                    let _ = Box::from_raw(e.as_ptr());
                 }
                 else { unreachable!() }
             }
