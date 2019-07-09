@@ -121,6 +121,74 @@ impl Cluster for Farthest {
 }
 ```
 
+## 重心
+
+```rust
+#[derive(Clone, Debug)]
+struct Median {
+    inter_weight: usize,
+    left_sum: usize,
+    right_sum: usize,
+    ans: usize,
+    length: usize,
+}
+
+impl Median {
+    fn new(l: usize) -> Self {
+        Median {
+            inter_weight: 0,
+            ans: 0,
+            left_sum: 0,
+            right_sum: 0,
+            length: l,
+        }
+    }
+}
+
+impl Cluster for Median {
+    type V = usize;
+    fn identity() -> Self {
+        Median {
+            inter_weight: 0,
+            left_sum: 0,
+            right_sum: 0,
+            ans: 0,
+            length: 0,
+        }
+    }
+    fn compress(a: Self, b: Self, av: usize, bv: usize, cv: usize) -> Self {
+        Median {
+            inter_weight: a.inter_weight + b.inter_weight + cv,
+            ans: a.right_sum + b.left_sum + a.length * av + b.length * bv,
+            left_sum: a.left_sum + b.left_sum + a.length * (b.inter_weight + cv),
+            right_sum: b.right_sum + a.right_sum + b.length * (a.inter_weight + cv),
+            length: a.length + b.length,
+        }
+    }
+    fn rake(a: Self, b: Self, _av: usize, bv: usize, _cv: usize) -> Self {
+        Median {
+            inter_weight: a.inter_weight + b.inter_weight + bv,
+            ans: 0,
+            left_sum: a.left_sum + b.right_sum + a.length * b.inter_weight + (a.length + b.length) * bv,
+            right_sum: a.right_sum + b.right_sum + b.length * bv,
+            length: a.length,
+        }
+    }
+    fn reverse(&mut self) {
+        std::mem::swap(&mut self.left_sum, &mut self.right_sum);
+    }
+}
+```
+
+select
+
+```rust
+let (x, y) = select(v[a], |a, b, av, bv, cv| {
+    if a.inter_weight + av + cv >= b.inter_weight + bv + cv { 0 }
+    else { 1 }
+    });
+```
+
 ## TODO
 
 - update query
