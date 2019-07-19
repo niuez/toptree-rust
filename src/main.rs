@@ -19,5 +19,5 @@ fn main(){
     //query::median::median_easy2();
     //query::farthest_vertex::farthest_test();
     //query::diameter::diameter_test();
-    //query::median::yuki772();
+    query::median::yuki772();
 }

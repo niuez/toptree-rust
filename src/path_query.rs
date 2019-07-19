@@ -6,16 +6,13 @@ pub fn path_query<T: Cluster>(v: Vertex<T>, u: Vertex<T>) -> T {
         soft_expose(v, u);
         let mut root = v.handle().unwrap();
         root.push();
-        root.fix();
-        //test_comp_endpoints(root);
-        //println!("root = {}, {}", root.endpoints(0).as_ref().0, root.endpoints(1).as_ref().0);
+
         if root.endpoints(0) == v && root.endpoints(1) == u {
             root.fold()
         }
         else if root.endpoints(0) == v {
             if let CompNode::Node(mut n) = root {
                 n.as_mut().push();
-                n.as_mut().fix();
                 n.as_ref().child(0).fold()
             }
             else { unreachable!() }
@@ -23,7 +20,6 @@ pub fn path_query<T: Cluster>(v: Vertex<T>, u: Vertex<T>) -> T {
         else if root.endpoints(1) == u {
             if let CompNode::Node(mut n) = root {
                 n.as_mut().push();
-                n.as_mut().fix();
                 n.as_ref().child(1).fold()
             }
             else { unreachable!() }
@@ -31,10 +27,8 @@ pub fn path_query<T: Cluster>(v: Vertex<T>, u: Vertex<T>) -> T {
         else {
             if let CompNode::Node(mut n) = root {
                 n.as_mut().push();
-                n.as_mut().fix();
                 if let CompNode::Node(mut n2) = n.as_ref().child(1) {
                     n2.as_mut().push();
-                    n2.as_mut().fix();
                     n2.as_ref().child(0).fold()
                 }
                 else { unreachable!() }

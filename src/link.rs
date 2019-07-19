@@ -38,17 +38,21 @@ pub fn link<T: Cluster>(v: Vertex<T>, u: Vertex<T>, weight: T) -> NonNull<Edge<T
                             _ => unreachable!(),
                         };
                         let mut left_ch = nu.as_ref().child(0);
+                        left_ch.push();
+
                         *nu.as_mut().child_mut(0) = CompNode::Leaf(e);
                         *e.as_mut().parent_mut() = Some(ParentNode::Compress(nu));
                         e.as_mut().fix();
+
                         let beta = nu.as_ref().rake();
                         let mut rake = match beta {
                             Some(mut b) => {
+                                b.push();
                                 let rake = Rake::new(b, RakeNode::Leaf(left_ch));
                                 *b.parent_mut() = Some(ParentNode::Rake(rake));
                                 *left_ch.parent_mut() = Some(ParentNode::Rake(rake));
-                                left_ch.fix();
                                 b.fix();
+                                left_ch.fix();
                                 RakeNode::Node(rake)
                             }
                             None => {
@@ -93,13 +97,15 @@ pub fn link<T: Cluster>(v: Vertex<T>, u: Vertex<T>, weight: T) -> NonNull<Edge<T
                         *nv.as_mut().child_mut(1) = left;
                         *left.parent_mut() = Some(ParentNode::Compress(nv));
                         left.fix();
+
                         let alpha = nv.as_ref().rake();
                         let mut rake = match alpha {
                             Some(mut a) => {
+                                a.push();
                                 let mut rake = Rake::new(a, RakeNode::Leaf(right_ch));
                                 *a.parent_mut() = Some(ParentNode::Rake(rake));
-                                a.fix();
                                 *right_ch.parent_mut() = Some(ParentNode::Rake(rake));
+                                a.fix();
                                 right_ch.fix();
                                 rake.as_mut().fix();
 
@@ -109,13 +115,9 @@ pub fn link<T: Cluster>(v: Vertex<T>, u: Vertex<T>, weight: T) -> NonNull<Edge<T
                                 RakeNode::Leaf(right_ch)
                             }
                         };
-                        rake.fix();
                         *nv.as_mut().rake_mut() = Some(rake);
                         *rake.parent_mut() = Some(ParentNode::Compress(nv));
                         rake.fix();
-                        //test_comp_print(nv.as_ref().child(0));
-                        //test_comp_print(nv.as_ref().child(1));
-                        //println!("-------------");
                         nv.as_mut().fix();
                     }
                 }

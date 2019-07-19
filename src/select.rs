@@ -33,7 +33,7 @@ pub fn select<T: Cluster, F: Fn(T, T, T::V, T::V, T::V) -> usize>(v : Vertex<T>,
             n.as_ref().child(0).fix();
             n.as_ref().child(1).push();
             n.as_ref().child(1).fix();
-            if let Some(mut r) = n.as_ref().rake() { r.push(); r.fix(); }
+            if let Some(mut r) = n.as_ref().rake() { r.push(); }
             let a = n.as_ref().child(0);
             let b = n.as_ref().child(1);
             let r = n.as_ref().rake();

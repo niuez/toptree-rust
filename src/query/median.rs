@@ -121,32 +121,26 @@ pub fn yuki772() {
             let b: usize = iter.next().unwrap().parse().unwrap();
             let c: usize = iter.next().unwrap().parse().unwrap();
             let (a, b) = ((a - 1 + sum) % n, (b - 1 + sum) % n);
-            //println!("link {} {}", a, b);
             link(v[a], v[b], Median::new(c));
         }
         else if query == 2 {
             let a: usize = iter.next().unwrap().parse().unwrap();
             let b: usize = iter.next().unwrap().parse().unwrap();
             let (a, b) = ((a - 1 + sum) % n, (b - 1 + sum) % n);
-            //println!("cut {} {}", a, b);
             cut(v[a], v[b]);
         }
         else if query == 3 {
             let a: usize = iter.next().unwrap().parse().unwrap();
             let a = (a - 1 + sum) % n;
+            let mut root = expose(v[a]);
             let val = v[a].value();
             v[a].value_set(1 - val);
+            root.fix();
             let (x, y) = select(v[a], |a, b, av, bv, cv| {
                 if a.inter_weight + av + cv >= b.inter_weight + bv + cv { 0 }
                 else { 1 }
             });
-            //println!("query 3 = {}", a);
             let ans = std::cmp::min(expose(x).fold().ans, expose(y).fold().ans);
-            /* let ans = (0..n).filter(|i| {
-                let root = expose(v[a]);
-                expose(v[*i]);
-                root.parent().is_some() || *i == a
-            }).map(|i| expose(v[i]).fold().ans).min().unwrap(); */
             sum = (sum + ans % n) % n;
             println!("{}", ans);
         }

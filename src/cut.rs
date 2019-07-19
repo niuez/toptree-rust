@@ -63,6 +63,7 @@ pub fn cut<T: Cluster>(v: Vertex<T>, u: Vertex<T>) {
         soft_expose(v, u);
         let mut root = v.handle().unwrap();
         root.push();
+
         if let CompNode::Node(root) = root {
             let mut right = root.as_ref().child(1);
             *right.parent_mut() = None;
@@ -71,10 +72,9 @@ pub fn cut<T: Cluster>(v: Vertex<T>, u: Vertex<T>) {
             right.push();
 
             if let CompNode::Node(right) = right {
-                if let CompNode::Leaf(e) = right.as_ref().child(1) {
+                if let CompNode::Leaf(_) = right.as_ref().child(1) {
                     bring(right);
                     bring(root);
-                    let _ = Box::from_raw(e.as_ptr());
                 }
                 else { unreachable!() }
             }

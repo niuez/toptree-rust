@@ -4,18 +4,6 @@ use crate::splay::*;
 
 pub fn expose_raw<T: Cluster>(mut node: CompNode<T>) -> CompNode<T> {
     loop {
-        //println!("function expose --- node");
-        //test_comp_print(node);
-        //println!("endpoints ---------------------");
-        /*test_comp_endpoints(
-            {
-                let mut nn = node;
-                while let Some((_dir, par)) = parent_dir_comp(nn) {
-                    nn = CompNode::Node(par);
-                }
-                nn
-            }
-            );*/
         if let CompNode::Node(comp) = node {
             splay_comp(comp);
         }
@@ -24,8 +12,6 @@ pub fn expose_raw<T: Cluster>(mut node: CompNode<T>) -> CompNode<T> {
             Some(ParentNode::Rake(mut par)) => {
                 unsafe { par.as_mut().push(); }
                 splay_rake(par);
-                //unsafe { println!("{}", par.as_ref().parent().is_none()); }
-                //unsafe { println!("{}", if let Some(ParentNode::Rake(_)) = par.as_ref().parent() { true } else { false }); }
                 if let Some(ParentNode::Compress(n)) = unsafe { par.as_ref().parent() } {
                     n
                 }
@@ -39,13 +25,9 @@ pub fn expose_raw<T: Cluster>(mut node: CompNode<T>) -> CompNode<T> {
                 n
             }
         };
-        //println!("splay_comp_n ---------------------");
-        //test_comp_endpoints(CompNode::Node(n));
+
         splay_comp(n);
-        //println!("aaa=====");
-        //test_comp_endpoints(CompNode::Node(n));
-        //println!("node");
-        //test_comp_print(node);
+
         let dir = match parent_dir_comp_guard(CompNode::Node(n)) {
             Some((dir, _)) => dir,
             None => 0,
@@ -61,30 +43,33 @@ pub fn expose_raw<T: Cluster>(mut node: CompNode<T>) -> CompNode<T> {
         if let Some((n_dir, mut rake)) = parent_dir_rake(RakeNode::Leaf(node)) {
             unsafe {
                 let mut nch = n.as_mut().child(dir);
+                nch.push();
+                rake.as_mut().push();
+
                 *rake.as_mut().child_mut(n_dir) = RakeNode::Leaf(nch);
                 *nch.parent_mut() = Some(ParentNode::Rake(rake));
                 *n.as_mut().child_mut(dir) = node;
                 *node.parent_mut() = Some(ParentNode::Compress(n));
+
                 nch.fix();
                 rake.as_mut().fix();
                 node.fix();
                 n.as_mut().fix();
                 splay_rake(rake);
-                //println!("=================2===================");
-                //test_comp_endpoints(CompNode::Node(n));
             }
         }
         else {
             unsafe {
                 let mut nch = n.as_mut().child(dir);
+                nch.push();
+
                 *n.as_mut().rake_mut() = Some(RakeNode::Leaf(nch));
                 *nch.parent_mut() = Some(ParentNode::Compress(n));
                 *n.as_mut().child_mut(dir) = node;
                 *node.parent_mut() = Some(ParentNode::Compress(n));
+
                 nch.fix();
                 node.fix();
-                //println!("=================1===================");
-                //test_comp_endpoints(CompNode::Node(n));
                 n.as_mut().fix();
             }
         }
@@ -109,31 +94,16 @@ pub fn soft_expose<T: Cluster>(v: Vertex<T>, u: Vertex<T>) {
             }
             return;
         }
-
-        if root.endpoints(0) == v {
-            unreachable!();
-            //root.reverse();
-            //root.push();
-        }
-        if root.endpoints(1) == v {
-            unreachable!();
-            //expose(u);
-        }
-        else if let CompNode::Node(mut r) = root {
-            r.as_mut().guard = true;
-            //println!("guard ---------------");
-            //test_comp_print(root);
-            //test_comp_print(u.as_ref().1.unwrap());
-            let soot = expose(u);
-            r.as_mut().guard = false;
-            r.as_mut().fix();
-            if parent_dir_comp(soot).unwrap().0 == 0 {
-                root.reverse();
-                root.push();
+        if let CompNode::Node(mut root) = root {
+            root.as_mut().guard = true;
+            let mut soot = expose(u);
+            root.as_mut().guard = false;
+            soot.push();
+            root.as_mut().fix();
+            if let Some((0, _)) = parent_dir_comp(soot) {
+                root.as_mut().reverse();
+                root.as_mut().push();
             }
-        }
-        else {
-            unreachable!()
         }
     }
 }

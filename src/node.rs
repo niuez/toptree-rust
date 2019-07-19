@@ -1,7 +1,6 @@
 use std::ptr::NonNull;
 use crate::parent_dir::*;
-use crate::link::*;
-use crate::expose::*;
+//use crate::expose::*;
 
 pub trait Cluster: Clone {
     type V: Default + Copy + std::fmt::Debug;
@@ -41,9 +40,7 @@ impl<T: Cluster> VertexRaw<T> {
         self.val
     }
     pub fn value_set(&mut self, val: T::V) {
-        let mut root = expose_raw(self.handle().unwrap());
         self.val = val;
-        root.fix();
     }
 }
 
@@ -211,7 +208,7 @@ impl<T: Cluster> TVertex<T> for Edge<T> {
             Some(ParentNode::Rake(_)) => {
                 *self.v[0].handle_mut() = Some(CompNode::Leaf(self.me));
             }
-            _ => {
+            None => {
                 *self.v[0].handle_mut() = Some(CompNode::Leaf(self.me));
                 *self.v[1].handle_mut() = Some(CompNode::Leaf(self.me));
             }
@@ -236,7 +233,6 @@ impl<T: Cluster> TVertex<T> for Compress<T> {
         self.push();
         self.v[0] = self.ch[0].endpoints(0);
         self.v[1] = self.ch[1].endpoints(1);
-        //self.fold = self.ch[0].fold() + self.ch[1].fold();
 
         self.fold = T::compress(
             match self.rake {
@@ -246,13 +242,9 @@ impl<T: Cluster> TVertex<T> for Compress<T> {
             self.ch[1].fold(), self.ch[0].endpoints(0).value(), self.ch[1].endpoints(1).value(), self.ch[0].endpoints(1).value()
             );
         *self.ch[0].endpoints(1).handle_mut() = Some(CompNode::Node(self.me));
-        /*println!("fix=====");
-        for i in 0..2 {
-            for j in 0..2 {
-                println!("{}, {} = {}", i, j, self.ch[0].endpoints(i) == self.ch[1].endpoints(j));
-            }
-        }*/
-        //assert!(self.ch[0].endpoints(1) == self.ch[1].endpoints(0));
+
+        assert!(self.ch[0].endpoints(1) == self.ch[1].endpoints(0));
+
         match self.parent() {
             Some(ParentNode::Compress(_)) => {
                 if parent_dir_comp(CompNode::Node(self.me)).is_none() {
@@ -270,17 +262,16 @@ impl<T: Cluster> TVertex<T> for Compress<T> {
     }
     fn push(&mut self) {
         if self.rev {
+            self.ch.swap(0, 1);
             self.ch[0].reverse();
             self.ch[1].reverse();
             self.rev = false;
         }
     }
     fn reverse(&mut self) {
-        self.ch.swap(0, 1);
         self.v.swap(0, 1);
         self.fold.reverse();
         self.rev ^= true;
-        self.push();
     }
     fn parent(&self) -> Link<ParentNode<T>> { self.par }
     fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> { &mut self.par }
@@ -301,7 +292,6 @@ impl<T: Cluster> TVertex<T> for Rake<T> {
     fn push(&mut self) {
     }
     fn reverse(&mut self) {
-        self.push();
     }
     fn parent(&self) -> Link<ParentNode<T>> { self.par }
     fn parent_mut(&mut self) -> &mut Link<ParentNode<T>> { &mut self.par }

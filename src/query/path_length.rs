@@ -1,11 +1,13 @@
 use crate::node::*;
 use crate::link::*;
 use crate::path_query::*;
+use crate::debug::*;
 
 impl Cluster for usize {
+    type V = usize;
     fn identity() -> Self { 0 }
-    fn compress(left: Self, right: Self) -> Self { left + right }
-    fn rake(a: Self, _: Self) -> Self { a }
+    fn compress(left: Self, right: Self, _: usize, _: usize, _: usize) -> Self { left + right }
+    fn rake(a: Self, _: Self, _: usize, _: usize, _: usize) -> Self { a }
     fn reverse(&mut self) {}
 }
 
@@ -38,6 +40,10 @@ pub fn path_length_test() {
     assert!(path_query(v[3], v[11]) == 27);
     assert!(path_query(v[6], v[12]) == 18);
     assert!(path_query(v[12], v[6]) == 18);
+    for i in 0..13 {
+        println!("VERTEX {} ---------------", i);
+        test_comp_set(v[i].handle().unwrap());
+    }
     assert!(path_query(v[2], v[4]) == 14);
     assert!(path_query(v[5], v[6]) == 6);
 }
